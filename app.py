@@ -20,6 +20,7 @@ def get_key_from_selection(loc, regim, masa, zi, luna, an):
 def get_empty_dataframe():
     """Returnează un DataFrame gol cu coloanele necesare"""
     return pd.DataFrame(columns=[
+        'Fel de mâncare',
         'Aliment', 
         'Nr. persoane', 
         'Unitate măsură', 
@@ -103,6 +104,7 @@ def main():
                 col1, col2 = st.columns(2)
                 
                 with col1:
+                    fel_mancare = st.text_input("Fel de mâncare:")
                     aliment = st.text_input("Aliment:")
                     nr_persoane = st.number_input("Nr. persoane:", min_value=1, value=1)
                     unitate = st.selectbox("Unitate măsură:", ["kg", "g", "l", "ml", "bucăți", "porții"])
@@ -114,9 +116,10 @@ def main():
                 
                 submitted = st.form_submit_button("Adaugă aliment")
                 
-                if submitted and aliment:
+                if submitted and fel_mancare and aliment:
                     # Adăugare înregistrare nouă
                     new_record = pd.DataFrame([{
+                        'Fel de mâncare': fel_mancare,
                         'Aliment': aliment,
                         'Nr. persoane': nr_persoane,
                         'Unitate măsură': unitate,
@@ -129,7 +132,7 @@ def main():
                         [current_data, new_record], 
                         ignore_index=True
                     )
-                    st.success(f"Alimentul '{aliment}' a fost adăugat cu succes!")
+                    st.success(f"Alimentul '{aliment}' din categoria '{fel_mancare}' a fost adăugat cu succes!")
                     st.rerun()
         
         # Afișare și editare date existente
@@ -142,6 +145,7 @@ def main():
                 num_rows="dynamic",
                 use_container_width=True,
                 column_config={
+                    "Fel de mâncare": st.column_config.TextColumn("Fel de mâncare", width="medium"),
                     "Aliment": st.column_config.TextColumn("Aliment", width="medium"),
                     "Nr. persoane": st.column_config.NumberColumn("Nr. persoane", min_value=1),
                     "Unitate măsură": st.column_config.SelectboxColumn(
@@ -194,6 +198,12 @@ def main():
                     st.metric("Cantitate totală", f"{total_cantitate:.2f}")
         else:
             st.info("Nu există alimente înregistrate pentru această combinație. Folosește formularul de mai sus pentru a adăuga primul aliment.")
+            
+            # Informație despre combinațiile posibile
+            st.markdown("### ℹ️ Informații despre combinații:")
+            total_combinations_possible = 3 * 6 * 5 * 31 * 12 * 11  # C1-C3 × R1-R6 × M1-M5 × zile × luni × ani (2020-2030)
+            st.caption(f"Combinații teoretice posibile: **{total_combinations_possible:,}**")
+            st.caption("Fiecare combinație de indici (Loc, Regim, Masa, Zi, Luna, An) poate avea propria listă de alimente.")
     
     # Footer
     st.markdown("---")
