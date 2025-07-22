@@ -24,10 +24,7 @@ def get_empty_dataframe():
     """Returnează un DataFrame gol cu coloanele necesare"""
     return pd.DataFrame(columns=[
         'Aliment',
-        'Ingredient', 
         'Nr. persoane', 
-        'Unitate măsură', 
-        'Cantitate', 
         'Gramaj/persoană', 
         'Porție/persoană'
     ])
@@ -72,7 +69,7 @@ def calculate_tomorrow_supplies(zi, luna, an):
                     if aliment in st.session_state.retetar:
                         recipe_df = st.session_state.retetar[aliment]
                         
-                        # Calculare cantități pentru ingrediente
+                        # Calculare cantități pentru toate ingredientele
                         for _, recipe_row in recipe_df.iterrows():
                             ingredient = recipe_row['Ingredient']
                             cantitate_per_portie = recipe_row['Cantitate per porție']
@@ -178,39 +175,29 @@ def main():
         # Formular pentru adăugare înregistrare nouă
         with st.expander("➕ Adaugă aliment nou", expanded=False):
             with st.form("add_food_form"):
-                col1, col2 = st.columns(2)
+                aliment = st.text_input("Aliment (ex: ciorbă de dovlecei):")
                 
+                col1, col2, col3 = st.columns(3)
                 with col1:
-                    aliment = st.text_input("Aliment (ex: ciorbă de dovlecei):")
-                    ingredient = st.text_input("Ingredient principal:")
                     nr_persoane = st.number_input("Nr. persoane:", min_value=1, value=1)
-                    unitate = st.selectbox("Unitate măsură:", ["kg", "g", "l", "ml", "bucăți", "porții"])
-                
                 with col2:
-                    cantitate = st.number_input("Cantitate:", min_value=0.0, step=0.1, format="%.2f")
                     gramaj_persoana = st.number_input("Gramaj/persoană:", min_value=0.0, step=0.1, format="%.2f")
+                with col3:
                     portie_persoana = st.number_input("Porție/persoană:", min_value=0.0, step=0.1, format="%.2f")
                 
                 submitted = st.form_submit_button("Adaugă aliment")
                 
-                if submitted and aliment and ingredient:
+                if submitted and aliment:
                     # Verifică dacă alimentul există în rețetar
                     if aliment not in st.session_state.retetar:
-                        # Creează o rețetă nouă cu ingredientul principal
-                        st.session_state.retetar[aliment] = pd.DataFrame([{
-                            'Ingredient': ingredient,
-                            'Cantitate per porție': cantitate,
-                            'Unitate măsură': unitate
-                        }])
-                        st.info(f"Rețeta pentru '{aliment}' a fost creată automat!")
+                        # Creează o rețetă goală pentru aliment
+                        st.session_state.retetar[aliment] = get_empty_recipe_dataframe()
+                        st.warning(f"Alimentul '{aliment}' a fost adăugat, dar nu are ingrediente în rețetar. Te rog să completezi rețeta!")
                     
                     # Adăugare înregistrare nouă
                     new_record = pd.DataFrame([{
                         'Aliment': aliment,
-                        'Ingredient': ingredient,
                         'Nr. persoane': nr_persoane,
-                        'Unitate măsură': unitate,
-                        'Cantitate': cantitate,
                         'Gramaj/persoană': gramaj_persoana,
                         'Porție/persoană': portie_persoana
                     }])
@@ -232,21 +219,29 @@ def main():
                 num_rows="dynamic",
                 use_container_width=True,
                 column_config={
-                    "Aliment": st.column_config.TextColumn("Aliment", width="medium"),
-                    "Ingredient": st.column_config.TextColumn("Ingredient", width="medium"),
+                    "Aliment": st.column_config.TextColumn("Aliment", width="large"),
                     "Nr. persoane": st.column_config.NumberColumn("Nr. persoane", min_value=1),
-                    "Unitate măsură": st.column_config.SelectboxColumn(
-                        "Unitate măsură",
-                        options=["kg", "g", "l", "ml", "bucăți", "porții"]
-                    ),
-                    "Cantitate": st.column_config.NumberColumn("Cantitate", format="%.2f"),
-                    "Gramaj/persoană": st.column_config.NumberColumn("Gramaj/persoană", format="%.2f"),
+                    "Gramaj/persoană": st.column_config.NumberColumn("Gramaj/persoană (g)", format="%.2f"),
                     "Porție/persoană": st.column_config.NumberColumn("Porție/persoană", format="%.2f")
                 }
             )
             
             # Actualizare date în session state
             st.session_state.data_storage[storage_key] = edited_data
+            
+            # Verificare dacă toate alimentele au rețete complete
+            st.markdown("### ⚠️ Status rețete:")
+            for _, row in edited_data.iterrows():
+                aliment = row['Aliment']
+                if aliment in st.session_state.retetar:
+                    recipe_df = st.session_state.retetar[aliment]
+                    if recipe_df.empty:
+                        st.error(f"🔴 '{aliment}' - Nu are ingrediente în rețetar!")
+                    else:
+                        ingredient_count = len(recipe_df)
+                        st.success(f"🟢 '{aliment}' - {ingredient_count} ingrediente în rețetar")
+                else:
+                    st.error(f"🔴 '{aliment}' - Nu există în rețetar!")
             
             # Butoane de acțiuni
             col_actions = st.columns(3)
@@ -301,10 +296,10 @@ def main():
                         use_container_width=True,
                         column_config={
                             "Ingredient": st.column_config.TextColumn("Ingredient"),
-                            "Cantitate per porție": st.column_config.NumberColumn("Cantitate/porție", format="%.2f"),
+                            "Cantitate per porție": st.column_config.NumberColumn("Cantitate/porție", format="%.3f"),
                             "Unitate măsură": st.column_config.SelectboxColumn(
                                 "Unitate",
-                                options=["kg", "g", "l", "ml", "bucăți", "porții"]
+                                options=["kg", "g", "l", "ml", "bucăți", "porții", "linguri", "lingurite"]
                             )
                         },
                         key=f"recipe_editor_{selected_recipe}"
@@ -312,6 +307,17 @@ def main():
                     
                     # Actualizare rețetă
                     st.session_state.retetar[selected_recipe] = edited_recipe
+                    
+                    # Informații despre rețetă
+                    if not edited_recipe.empty:
+                        st.success(f"✅ Rețeta are {len(edited_recipe)} ingrediente")
+                        
+                        # Afișare sumar ingrediente
+                        st.markdown("**Ingrediente:**")
+                        for _, ingredient_row in edited_recipe.iterrows():
+                            st.caption(f"• {ingredient_row['Ingredient']}: {ingredient_row['Cantitate per porție']:.2f} {ingredient_row['Unitate măsură']}")
+                    else:
+                        st.warning("⚠️ Această rețetă nu are ingrediente!")
                     
                     # Butoane pentru rețetă
                     col_recipe1, col_recipe2 = st.columns(2)
@@ -325,17 +331,18 @@ def main():
                         total_ingredients = len(edited_recipe) if not edited_recipe.empty else 0
                         st.metric("Ingrediente", total_ingredients)
             else:
-                st.info("Nu există rețete în baza de date. Adaugă primul aliment pentru a crea o rețetă!")
+                st.info("Nu există rețete în baza de date. Adaugă primul aliment pentru a începe!")
             
             # Adăugare rețetă nouă manual
             with st.expander("➕ Creează rețetă nouă", expanded=False):
                 with st.form("new_recipe_form"):
                     new_recipe_name = st.text_input("Nume aliment nou:")
+                    st.markdown("*După creare, poți adăuga ingredientele folosind editorul de mai sus.*")
                     
                     if st.form_submit_button("Creează rețetă goală") and new_recipe_name:
                         if new_recipe_name not in st.session_state.retetar:
                             st.session_state.retetar[new_recipe_name] = get_empty_recipe_dataframe()
-                            st.success(f"Rețeta '{new_recipe_name}' a fost creată!")
+                            st.success(f"Rețeta '{new_recipe_name}' a fost creată! Acum poți adăuga ingredientele.")
                             st.rerun()
                         else:
                             st.warning("Această rețetă există deja!")
@@ -353,7 +360,7 @@ def main():
                     use_container_width=True,
                     column_config={
                         "Ingredient": st.column_config.TextColumn("Ingredient"),
-                        "Cantitate totală": st.column_config.NumberColumn("Cantitate", format="%.2f"),
+                        "Cantitate totală": st.column_config.NumberColumn("Cantitate", format="%.3f"),
                         "Unitate măsură": st.column_config.TextColumn("Unitate")
                     }
                 )
@@ -376,18 +383,44 @@ def main():
                     except ValueError:
                         st.error("Eroare la calcularea datei de mâine!")
             else:
-                st.info("Nu există înregistrări pentru data de mâine sau nu există rețete complete.")
+                st.info("Nu există ingrediente pentru data de mâine.")
                 
                 # Afișare informații despre mâine
                 try:
                     tomorrow = datetime(an, luna, zi) + timedelta(days=1)
                     st.caption(f"Se caută înregistrări pentru: {tomorrow.day:02d}.{tomorrow.month:02d}.{tomorrow.year}")
+                    
+                    # Verificare dacă există înregistrări pentru mâine dar fără rețete
+                    tomorrow_records = 0
+                    for key in st.session_state.data_storage.keys():
+                        parts = key.split('_')
+                        if len(parts) == 6:
+                            _, _, _, key_zi, key_luna, key_an = parts
+                            if (int(key_zi) == tomorrow.day and 
+                                int(key_luna) == tomorrow.month and 
+                                int(key_an) == tomorrow.year):
+                                tomorrow_records += len(st.session_state.data_storage[key])
+                    
+                    if tomorrow_records > 0:
+                        st.warning(f"Există {tomorrow_records} înregistrări pentru mâine, dar probabil lipsesc rețetele complete!")
+                    else:
+                        st.caption("Nu există înregistrări pentru data de mâine.")
+                        
                 except ValueError:
                     st.error("Data selectată este invalidă!")
     
-    # Footer
+    # Footer cu informații utile
     st.markdown("---")
-    st.markdown("*Aplicația Dieta v2.0 - Cu Rețetar și Lista Depozit*")
+    st.markdown("### 💡 Instrucțiuni de utilizare:")
+    st.markdown("""
+    1. **Selectează** locul, regimul, masa și data din panoul stâng
+    2. **Adaugă alimente** în lista din centru
+    3. **Completează rețetele** cu toate ingredientele în panoul drept
+    4. **Verifică lista de depozit** pentru aprovizionarea de mâine
+    
+    **Important:** Pentru ca lista de depozit să funcționeze, fiecare aliment trebuie să aibă o rețetă completă cu toate ingredientele necesare!
+    """)
+    st.markdown("*Aplicația Dieta v2.1 - Cu Rețetar Complet*")
 
 if __name__ == "__main__":
     main()
