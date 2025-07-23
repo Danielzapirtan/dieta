@@ -44,15 +44,17 @@ def initialize_session_state():
     
     if 'selected_coordinates' not in st.session_state:
         st.session_state.selected_coordinates = {
-            'loc_consum': 'C1',
+            'persoane_c1': 0,
+            'persoane_c2': 0,
+            'persoane_c3': 0,
             'masa_zi': 'M1', 
             'regim_alimentar': 'R1',
             'data': date.today().strftime('%d.%m.%Y')
         }
 
-def generate_cza_key(coords):
+def generate_cza_key(loc_consum, coords):
     """Generează cheia pentru coordonatele CZA"""
-    return f"{coords['loc_consum']}_{coords['masa_zi']}_{coords['regim_alimentar']}_{coords['data']}"
+    return f"{loc_consum}_{coords['masa_zi']}_{coords['regim_alimentar']}_{coords['data']}"
 
 # Inițializare
 initialize_session_state()
@@ -153,126 +155,178 @@ with tab1:
 with tab2:
     st.header("Coordonate CZA")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        loc_consum = st.selectbox("Loc consum", ["C1", "C2", "C3"], 
-                                index=["C1", "C2", "C3"].index(st.session_state.selected_coordinates['loc_consum']))
+        persoane_c1 = st.number_input("Persoane C1", min_value=0, max_value=127, 
+                                    value=st.session_state.selected_coordinates['persoane_c1'])
     
     with col2:
+        persoane_c2 = st.number_input("Persoane C2", min_value=0, max_value=127, 
+                                    value=st.session_state.selected_coordinates['persoane_c2'])
+    
+    with col3:
+        persoane_c3 = st.number_input("Persoane C3", min_value=0, max_value=127, 
+                                    value=st.session_state.selected_coordinates['persoane_c3'])
+    
+    with col4:
         masa_zi = st.selectbox("Masa din zi", ["M1", "M2", "M3", "M4", "M5"],
                              index=["M1", "M2", "M3", "M4", "M5"].index(st.session_state.selected_coordinates['masa_zi']))
     
-    with col3:
+    with col5:
         regim_alimentar = st.selectbox("Regim alimentar", ["R1", "R2", "R3", "R4", "R5", "R6"],
                                      index=["R1", "R2", "R3", "R4", "R5", "R6"].index(st.session_state.selected_coordinates['regim_alimentar']))
     
-    with col4:
-        try:
-            data_obj = datetime.strptime(st.session_state.selected_coordinates['data'], '%d.%m.%Y').date()
-        except:
-            data_obj = date.today()
-        
-        selected_date = st.date_input("Data", value=data_obj)
-        data_str = selected_date.strftime('%d.%m.%Y')
+    # Data pe o linie separată
+    try:
+        data_obj = datetime.strptime(st.session_state.selected_coordinates['data'], '%d.%m.%Y').date()
+    except:
+        data_obj = date.today()
+    
+    selected_date = st.date_input("Data", value=data_obj)
+    data_str = selected_date.strftime('%d.%m.%Y')
     
     # Actualizare coordonate în session state
     st.session_state.selected_coordinates = {
-        'loc_consum': loc_consum,
+        'persoane_c1': persoane_c1,
+        'persoane_c2': persoane_c2,
+        'persoane_c3': persoane_c3,
         'masa_zi': masa_zi,
         'regim_alimentar': regim_alimentar,
         'data': data_str
     }
     
-    st.info(f"Coordonate selectate: {loc_consum} - {masa_zi} - {regim_alimentar} - {data_str}")
+    st.info(f"Coordonate selectate: C1({persoane_c1}) - C2({persoane_c2}) - C3({persoane_c3}) - {masa_zi} - {regim_alimentar} - {data_str}")
 
-# TAB 3: CZA (Cantitate Zilnică Alimente)
+# TAB 3: CZA (Cantitate Zilnică Alimente) - MODIFICAT
 with tab3:
     st.header("CZA - Cantitate Zilnică Alimente")
     
     coords = st.session_state.selected_coordinates
-    cza_key = generate_cza_key(coords)
     
-    st.info(f"Coordonate curente: {coords['loc_consum']} - {coords['masa_zi']} - {coords['regim_alimentar']} - {coords['data']}")
+    st.info(f"Coordonate curente: C1({coords['persoane_c1']}) - C2({coords['persoane_c2']}) - C3({coords['persoane_c3']}) - {coords['masa_zi']} - {coords['regim_alimentar']} - {coords['data']}")
     
-    # Inițializare date CZA pentru coordonatele curente
-    if cza_key not in st.session_state.cza_data:
-        st.session_state.cza_data[cza_key] = {}
-    
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 3])
     
     with col1:
         st.subheader("Adaugă Aliment")
         
         if st.session_state.retetar:
             selected_aliment = st.selectbox("Selectează aliment", list(st.session_state.retetar.keys()))
-            nr_persoane = st.number_input("Numărul de persoane", min_value=1, value=1)
             
             if st.button("Adaugă în CZA", type="primary"):
-                if selected_aliment not in st.session_state.cza_data[cza_key]:
-                    # Inițializare cu datele din rețetar
-                    aliment_data = []
-                    for ing_id, ing_info in st.session_state.retetar[selected_aliment].items():
-                        cantitate_totala = ing_info['cantitate'] * nr_persoane
-                        aliment_data.append({
-                            'id': ing_id,
-                            'ingredient': ing_info['ingredient'],
-                            'nr_persoane': nr_persoane,
-                            'um': ing_info['um'],
-                            'cantitate_per_persoana': ing_info['cantitate'],
-                            'cantitate_totala': cantitate_totala
-                        })
+                # Verifică dacă există cel puțin un loc de consum cu persoane > 0
+                locuri_active = []
+                if coords['persoane_c1'] > 0:
+                    locuri_active.append(('C1', coords['persoane_c1']))
+                if coords['persoane_c2'] > 0:
+                    locuri_active.append(('C2', coords['persoane_c2']))
+                if coords['persoane_c3'] > 0:
+                    locuri_active.append(('C3', coords['persoane_c3']))
+                
+                if locuri_active:
+                    # Adaugă alimentul pentru fiecare loc de consum activ
+                    for loc_consum, nr_persoane in locuri_active:
+                        cza_key = generate_cza_key(loc_consum, coords)
+                        
+                        # Inițializare date CZA pentru coordonatele curente
+                        if cza_key not in st.session_state.cza_data:
+                            st.session_state.cza_data[cza_key] = {}
+                        
+                        if selected_aliment not in st.session_state.cza_data[cza_key]:
+                            # Generare automată a înregistrărilor din rețetar
+                            aliment_data = {
+                                'nr_persoane': nr_persoane,
+                                'ingrediente': []
+                            }
+                            
+                            for ing_id, ing_info in st.session_state.retetar[selected_aliment].items():
+                                cantitate_totala = ing_info['cantitate'] * nr_persoane
+                                aliment_data['ingrediente'].append({
+                                    'id': ing_id,
+                                    'ingredient': ing_info['ingredient'],
+                                    'um': ing_info['um'],
+                                    'cantitate_per_persoana': ing_info['cantitate'],
+                                    'cantitate_totala': cantitate_totala
+                                })
+                            
+                            st.session_state.cza_data[cza_key][selected_aliment] = aliment_data
                     
-                    st.session_state.cza_data[cza_key][selected_aliment] = aliment_data
                     save_data(st.session_state.cza_data, CZA_FILE)
-                    st.success(f"Alimentul '{selected_aliment}' a fost adăugar în CZA!")
+                    st.success(f"Alimentul '{selected_aliment}' a fost adăugat în CZA pentru toate locurile de consum active!")
                     st.rerun()
                 else:
-                    st.warning("Alimentul este deja în CZA pentru aceste coordonate!")
+                    st.warning("Nu există persoane în niciun loc de consum!")
         else:
             st.warning("Nu există alimente în rețetar!")
     
     with col2:
         st.subheader("Alimente în CZA")
         
-        if st.session_state.cza_data[cza_key]:
-            for aliment, ingrediente in st.session_state.cza_data[cza_key].items():
-                with st.expander(f"🍳 {aliment}", expanded=True):
-                    
-                    # Tabel pentru editare ingrediente
-                    for i, ing in enumerate(ingrediente):
-                        col_ing, col_pers, col_um, col_cant_pers, col_cant_tot, col_btn = st.columns([2, 1, 1, 1, 1, 1])
+        # Afișează tabele pentru fiecare loc de consum cu persoane > 0
+        locuri_active = []
+        if coords['persoane_c1'] > 0:
+            locuri_active.append(('C1', coords['persoane_c1']))
+        if coords['persoane_c2'] > 0:
+            locuri_active.append(('C2', coords['persoane_c2']))
+        if coords['persoane_c3'] > 0:
+            locuri_active.append(('C3', coords['persoane_c3']))
+        
+        for loc_consum, nr_persoane in locuri_active:
+            cza_key = generate_cza_key(loc_consum, coords)
+            
+            st.markdown(f"### 📍 {loc_consum} - {nr_persoane} persoane")
+            
+            # Inițializare date CZA pentru coordonatele curente
+            if cza_key not in st.session_state.cza_data:
+                st.session_state.cza_data[cza_key] = {}
+            
+            if st.session_state.cza_data[cza_key]:
+                for aliment, aliment_data in st.session_state.cza_data[cza_key].items():
+                    with st.expander(f"🍳 {aliment} - {aliment_data['nr_persoane']} persoane", expanded=True):
                         
-                        with col_ing:
-                            st.write(ing['ingredient'])
+                        # Modificare numărul de persoane
+                        col_pers, col_btn_update = st.columns([2, 1])
                         with col_pers:
-                            new_nr_pers = st.number_input("", value=ing['nr_persoane'], min_value=1, 
-                                                        key=f"pers_{cza_key}_{aliment}_{i}")
-                        with col_um:
-                            st.write(ing['um'])
-                        with col_cant_pers:
-                            new_cant_pers = st.number_input("", value=float(ing['cantitate_per_persoana']), 
-                                                          min_value=0.0, step=0.1,
-                                                          key=f"cant_pers_{cza_key}_{aliment}_{i}")
-                        with col_cant_tot:
-                            cantitate_totala = new_nr_pers * new_cant_pers
-                            st.write(f"{cantitate_totala:.2f}")
-                        with col_btn:
-                            if st.button("💾", key=f"save_cza_{cza_key}_{aliment}_{i}", help="Salvează"):
-                                st.session_state.cza_data[cza_key][aliment][i]['nr_persoane'] = new_nr_pers
-                                st.session_state.cza_data[cza_key][aliment][i]['cantitate_per_persoana'] = new_cant_pers
-                                st.session_state.cza_data[cza_key][aliment][i]['cantitate_totala'] = cantitate_totala
+                            new_nr_persoane = st.number_input("Numărul de persoane:", 
+                                                            value=aliment_data['nr_persoane'], 
+                                                            min_value=1,
+                                                            key=f"nr_pers_{cza_key}_{aliment}")
+                        with col_btn_update:
+                            if st.button("Actualizează", key=f"update_pers_{cza_key}_{aliment}"):
+                                # Actualizează numărul de persoane și recalculează cantitățile
+                                st.session_state.cza_data[cza_key][aliment]['nr_persoane'] = new_nr_persoane
+                                for ing in st.session_state.cza_data[cza_key][aliment]['ingrediente']:
+                                    ing['cantitate_totala'] = ing['cantitate_per_persoana'] * new_nr_persoane
                                 save_data(st.session_state.cza_data, CZA_FILE)
-                                st.success("Salvat!")
+                                st.success("Actualizat!")
                                 st.rerun()
-                    
-                    # Buton pentru ștergerea alimentului din CZA
-                    if st.button(f"🗑️ Șterge din CZA", key=f"del_cza_{cza_key}_{aliment}", type="secondary"):
-                        del st.session_state.cza_data[cza_key][aliment]
-                        save_data(st.session_state.cza_data, CZA_FILE)
-                        st.rerun()
-        else:
-            st.info("Nu există alimente adăugate în CZA pentru coordonatele selectate.")
+                        
+                        # Tabel cu ingredientele
+                        if aliment_data['ingrediente']:
+                            # Creează dataframe pentru tabel
+                            df_data = []
+                            for ing in aliment_data['ingrediente']:
+                                df_data.append({
+                                    'Ingredient': ing['ingredient'],
+                                    'UM': ing['um'],
+                                    'Cantitate/persoană': f"{ing['cantitate_per_persoana']:.2f}",
+                                    'Cantitate totală': f"{ing['cantitate_totala']:.2f}"
+                                })
+                            
+                            df = pd.DataFrame(df_data)
+                            st.dataframe(df, use_container_width=True, hide_index=True)
+                        
+                        # Buton pentru ștergerea alimentului din CZA
+                        if st.button(f"🗑️ Șterge '{aliment}' din CZA", key=f"del_cza_{cza_key}_{aliment}", type="secondary"):
+                            del st.session_state.cza_data[cza_key][aliment]
+                            save_data(st.session_state.cza_data, CZA_FILE)
+                            st.rerun()
+            else:
+                st.info(f"Nu există alimente adăugate în CZA pentru {loc_consum}.")
+        
+        if not locuri_active:
+            st.info("Nu există persoane în niciun loc de consum.")
 
 # TAB 4: LISTĂ ALIMENTE
 with tab4:
@@ -288,8 +342,8 @@ with tab4:
         # Verifică dacă data din cheie coincide cu data selectată
         key_parts = key.split('_')
         if len(key_parts) >= 4 and key_parts[3] == data_selectata:
-            for aliment, ingrediente in alimente.items():
-                for ing in ingrediente:
+            for aliment, aliment_data in alimente.items():
+                for ing in aliment_data['ingrediente']:
                     ingredient_name = ing['ingredient']
                     um = ing['um']
                     cantitate = ing['cantitate_totala']
