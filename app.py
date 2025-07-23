@@ -156,7 +156,7 @@ with tab2:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        loc_consum = st.selectbox("Loc consum", ["CARPADN1", "CARPADN2", "CSPADN"], 
+        loc_consum = st.selectbox("Loc consum", ["C1", "C2", "C3"], 
                                 index=["C1", "C2", "C3"].index(st.session_state.selected_coordinates['loc_consum']))
     
     with col2:
