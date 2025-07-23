@@ -198,13 +198,14 @@ with tab2:
     
     st.info(f"Coordonate selectate: C1({persoane_c1}) - C2({persoane_c2}) - C3({persoane_c3}) - {masa_zi} - {regim_alimentar} - {data_str}")
 
-# TAB 3: CZA (Cantitate Zilnică Alimente) - MODIFICAT
+# TAB 3: CZA (Cantitate Zilnică Alimente) - MODIFICAT CONFORM SPECIFICAȚIILOR
 with tab3:
     st.header("CZA - Cantitate Zilnică Alimente")
     
     coords = st.session_state.selected_coordinates
     
-    st.info(f"Coordonate curente: C1({coords['persoane_c1']}) - C2({coords['persoane_c2']}) - C3({coords['persoane_c3']}) - {coords['masa_zi']} - {coords['regim_alimentar']} - {coords['data']}")
+    # Afișare coordonate selectate
+    st.info(f"**Coordonate selectate:** C1({coords['persoane_c1']}) - C2({coords['persoane_c2']}) - C3({coords['persoane_c3']}) - {coords['masa_zi']} - {coords['regim_alimentar']} - {coords['data']}")
     
     col1, col2 = st.columns([1, 3])
     
@@ -263,7 +264,7 @@ with tab3:
     with col2:
         st.subheader("Alimente în CZA")
         
-        # Afișează tabele pentru fiecare loc de consum cu persoane > 0
+        # Determină locurile de consum active (cu persoane > 0)
         locuri_active = []
         if coords['persoane_c1'] > 0:
             locuri_active.append(('C1', coords['persoane_c1']))
@@ -272,18 +273,21 @@ with tab3:
         if coords['persoane_c3'] > 0:
             locuri_active.append(('C3', coords['persoane_c3']))
         
+        # Generare tabel pentru fiecare loc de consum cu persoane > 0
         for loc_consum, nr_persoane in locuri_active:
             cza_key = generate_cza_key(loc_consum, coords)
-            
-            st.markdown(f"### 📍 {loc_consum} - {nr_persoane} persoane")
             
             # Inițializare date CZA pentru coordonatele curente
             if cza_key not in st.session_state.cza_data:
                 st.session_state.cza_data[cza_key] = {}
             
+            # Parcurge toate alimentele pentru acest loc de consum
             if st.session_state.cza_data[cza_key]:
                 for aliment, aliment_data in st.session_state.cza_data[cza_key].items():
-                    with st.expander(f"🍳 {aliment} - {aliment_data['nr_persoane']} persoane", expanded=True):
+                    # Afișare informații deasupra tabelului: loc de consum, aliment, regim, masa, data
+                    st.markdown(f"**Loc de consum:** {loc_consum} | **Aliment:** {aliment} | **Regim:** {coords['regim_alimentar']} | **Masa:** {coords['masa_zi']} | **Data:** {coords['data']}")
+                    
+                    with st.expander(f"📊 Tabel ingrediente - {aliment}", expanded=True):
                         
                         # Modificare numărul de persoane
                         col_pers, col_btn_update = st.columns([2, 1])
@@ -322,11 +326,13 @@ with tab3:
                             del st.session_state.cza_data[cza_key][aliment]
                             save_data(st.session_state.cza_data, CZA_FILE)
                             st.rerun()
-            else:
-                st.info(f"Nu există alimente adăugate în CZA pentru {loc_consum}.")
+                    
+                    st.markdown("---")  # Separator între tabele
         
         if not locuri_active:
             st.info("Nu există persoane în niciun loc de consum.")
+        elif not any(st.session_state.cza_data.get(generate_cza_key(loc[0], coords), {}) for loc in locuri_active):
+            st.info("Nu există alimente adăugate în CZA pentru coordonatele curente.")
 
 # TAB 4: LISTĂ ALIMENTE
 with tab4:
