@@ -10,7 +10,7 @@ import uuid
 st.set_page_config(page_title="Aplicația Dietă", layout="wide")
 
 # Fișiere pentru persistența datelor
-DATA_DIR = "data"
+DATA_DIR = "../data"
 RETETAR_FILE = os.path.join(DATA_DIR, "retetar.json")
 CZA_FILE = os.path.join(DATA_DIR, "cza.json")
 
