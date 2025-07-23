@@ -1,426 +1,404 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, date
-import uuid
+import json
+import os
+from datetime import datetime
+from pathlib import Path
 
 # Configurare pagină
 st.set_page_config(
-    page_title="Aplicație Dieta",
+    page_title="Aplicația Dieta",
     page_icon="🍽️",
     layout="wide"
 )
 
+# Configurare directorul de date
+DATA_DIR = Path.home() / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
+RECETAR_FILE = DATA_DIR / "recetar.json"
+CZA_FILE = DATA_DIR / "cza.json"
+
+# Funcții pentru gestionarea datelor
+def load_data(file_path):
+    """Încarcă datele din fișier JSON"""
+    if file_path.exists():
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_data(data, file_path):
+    """Salvează datele în fișier JSON"""
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def get_unique_alimente():
+    """Obține lista unică de alimente din rețetar"""
+    recetar_data = load_data(RECETAR_FILE)
+    alimente = set()
+    for reteta in recetar_data:
+        for ingredient in reteta.get('ingrediente', []):
+            alimente.add(ingredient['ingredient'])
+    return sorted(list(alimente))
+
 # Inițializare session state
-def init_session_state():
-    if 'retetar' not in st.session_state:
-        st.session_state.retetar = {}
-    if 'cza_data' not in st.session_state:
-        st.session_state.cza_data = {}
-    if 'alimente_list' not in st.session_state:
-        st.session_state.alimente_list = set()
+if 'selected_coords' not in st.session_state:
+    st.session_state.selected_coords = {
+        'loc_consum': 'C1',
+        'masa_zi': 'M1', 
+        'regim_alimentar': 'R1',
+        'data': datetime.now().strftime('%d.%m.%Y')
+    }
 
-init_session_state()
+if 'edit_mode' not in st.session_state:
+    st.session_state.edit_mode = {'recetar': None, 'cza': None}
 
-# Funcții helper
-def get_unique_key(prefix=""):
-    return f"{prefix}_{str(uuid.uuid4())[:8]}"
+# Titlu aplicație
+st.title("🍽️ Aplicația Dieta")
 
-def format_date(date_obj):
-    return date_obj.strftime("%d.%m.%Y")
-
-def parse_date(date_str):
-    try:
-        return datetime.strptime(date_str, "%d.%m.%Y").date()
-    except:
-        return date.today()
-
-# Titlu principal
-st.title("🍽️ Aplicație Dieta - Nutriționist")
-
-# Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["📋 Rețetar", "📍 Coordonate CZA", "📊 CZA", "📝 Listă Alimente"])
+# Crearea taburilor
+tab1, tab2, tab3, tab4 = st.tabs(["📖 Rețetar", "📍 Coordonate CZA", "📊 CZA", "📋 Listă Alimente"])
 
 # TAB 1: REȚETAR
 with tab1:
-    st.header("📋 Rețetar")
+    st.header("Rețetar")
     
-    # Selectare aliment existent sau nou
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        existing_foods = list(st.session_state.retetar.keys()) if st.session_state.retetar else []
-        selected_food = st.selectbox("Selectează aliment existent:", [""] + existing_foods, key="select_food_retetar")
+        # Afișare tabel rețetar
+        recetar_data = load_data(RECETAR_FILE)
         
-        if not selected_food:
-            new_food = st.text_input("Sau adaugă aliment nou:", key="new_food_retetar")
-            current_food = new_food
+        if recetar_data:
+            # Creează un DataFrame pentru afișare
+            display_data = []
+            for i, reteta in enumerate(recetar_data):
+                for j, ingredient in enumerate(reteta.get('ingrediente', [])):
+                    display_data.append({
+                        'ID': f"{i}-{j}",
+                        'Aliment': reteta['nume'],
+                        'Ingredient': ingredient['ingredient'],
+                        'UM': ingredient['um'],
+                        'Cantitate/Porție': ingredient['cantitate']
+                    })
+            
+            if display_data:
+                df = pd.DataFrame(display_data)
+                
+                # Afișare tabel cu opțiuni de editare/ștergere
+                for idx, row in df.iterrows():
+                    col_data, col_edit, col_delete = st.columns([4, 1, 1])
+                    
+                    with col_data:
+                        st.write(f"**{row['Aliment']}**: {row['Ingredient']} - {row['Cantitate/Porție']} {row['UM']}")
+                    
+                    with col_edit:
+                        if st.button("✏️", key=f"edit_recetar_{row['ID']}", help="Editează"):
+                            st.session_state.edit_mode['recetar'] = row['ID']
+                            st.rerun()
+                    
+                    with col_delete:
+                        if st.button("🗑️", key=f"delete_recetar_{row['ID']}", help="Șterge"):
+                            # Șterge ingredientul
+                            reteta_idx, ingredient_idx = map(int, row['ID'].split('-'))
+                            if 0 <= reteta_idx < len(recetar_data):
+                                if 0 <= ingredient_idx < len(recetar_data[reteta_idx]['ingrediente']):
+                                    del recetar_data[reteta_idx]['ingrediente'][ingredient_idx]
+                                    # Șterge rețeta dacă nu mai are ingrediente
+                                    if not recetar_data[reteta_idx]['ingrediente']:
+                                        del recetar_data[reteta_idx]
+                                    save_data(recetar_data, RECETAR_FILE)
+                                    st.rerun()
         else:
-            current_food = selected_food
+            st.info("Nu există rețete în baza de date.")
     
     with col2:
-        st.write("**Acțiuni:**")
-        if current_food and current_food in st.session_state.retetar:
-            if st.button("🗑️ Șterge Aliment", key="delete_food"):
-                del st.session_state.retetar[current_food]
-                st.session_state.alimente_list.discard(current_food)
-                st.rerun()
-    
-    if current_food:
-        st.subheader(f"Rețete pentru: {current_food}")
-        
-        # Inițializare aliment în rețetar
-        if current_food not in st.session_state.retetar:
-            st.session_state.retetar[current_food] = []
-            st.session_state.alimente_list.add(current_food)
-        
-        # Formular pentru adăugare/editare rețetă
-        with st.expander("➕ Adaugă/Editează rețetă", expanded=False):
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                ingredient = st.text_input("Ingredient:", key=f"ingredient_{current_food}")
-            with col2:
-                um = st.selectbox("UM:", ["g", "kg", "ml", "l", "buc", "lingură", "linguriță", "cană"], key=f"um_{current_food}")
-            with col3:
-                cantitate = st.number_input("Cantitate/Porție:", min_value=0.0, step=0.1, key=f"cantitate_{current_food}")
-            with col4:
-                st.write("")
-                st.write("")
-                if st.button("💾 Adaugă", key=f"add_recipe_{current_food}"):
-                    if ingredient and cantitate > 0:
-                        new_recipe = {
-                            'id': str(uuid.uuid4()),
-                            'ingredient': ingredient,
-                            'um': um,
-                            'cantitate': cantitate
-                        }
-                        st.session_state.retetar[current_food].append(new_recipe)
-                        st.success(f"Rețeta adăugată pentru {current_food}!")
-                        st.rerun()
-        
-        # Afișare rețete existente
-        if st.session_state.retetar[current_food]:
-            st.subheader("Rețete existente:")
-            
-            # Creare DataFrame pentru afișare
-            recipes_data = []
-            for recipe in st.session_state.retetar[current_food]:
-                recipes_data.append({
-                    'Ingredient': recipe['ingredient'],
-                    'UM': recipe['um'],
-                    'Cantitate/Porție': recipe['cantitate'],
-                    'ID': recipe['id']
-                })
-            
-            df_recipes = pd.DataFrame(recipes_data)
-            
-            # Selectare rețetă pentru editare/ștergere
-            if len(df_recipes) > 0:
-                st.dataframe(df_recipes[['Ingredient', 'UM', 'Cantitate/Porție']], use_container_width=True)
+        # Formular pentru adăugare/editare
+        if st.session_state.edit_mode['recetar']:
+            st.subheader("Editează Ingredient")
+            # Logica de editare
+            reteta_idx, ingredient_idx = map(int, st.session_state.edit_mode['recetar'].split('-'))
+            if 0 <= reteta_idx < len(recetar_data) and 0 <= ingredient_idx < len(recetar_data[reteta_idx]['ingrediente']):
+                current_ingredient = recetar_data[reteta_idx]['ingrediente'][ingredient_idx]
+                current_aliment = recetar_data[reteta_idx]['nume']
                 
-                # Editare rețetă
-                recipe_to_edit = st.selectbox("Selectează rețetă pentru editare:", 
-                                            [""] + [f"{r['ingredient']} - {r['cantitate']} {r['um']}" for r in st.session_state.retetar[current_food]], 
-                                            key=f"edit_recipe_{current_food}")
-                
-                if recipe_to_edit:
-                    recipe_index = next((i for i, r in enumerate(st.session_state.retetar[current_food]) 
-                                       if f"{r['ingredient']} - {r['cantitate']} {r['um']}" == recipe_to_edit), None)
+                with st.form("edit_recetar_form"):
+                    edit_aliment = st.text_input("Aliment", value=current_aliment)
+                    edit_ingredient = st.text_input("Ingredient", value=current_ingredient['ingredient'])
+                    edit_um = st.selectbox("UM", ['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'], 
+                                         index=['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'].index(current_ingredient['um']) if current_ingredient['um'] in ['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'] else 0)
+                    edit_cantitate = st.number_input("Cantitate/Porție", value=current_ingredient['cantitate'], min_value=0.0, step=0.1)
                     
-                    if recipe_index is not None:
-                        recipe = st.session_state.retetar[current_food][recipe_index]
-                        
-                        with st.form(f"edit_form_{current_food}_{recipe_index}"):
-                            col1, col2, col3 = st.columns(3)
-                            
-                            with col1:
-                                edit_ingredient = st.text_input("Ingredient:", value=recipe['ingredient'])
-                            with col2:
-                                edit_um = st.selectbox("UM:", ["g", "kg", "ml", "l", "buc", "lingură", "linguriță", "cană"], 
-                                                     index=["g", "kg", "ml", "l", "buc", "lingură", "linguriță", "cană"].index(recipe['um']))
-                            with col3:
-                                edit_cantitate = st.number_input("Cantitate/Porție:", value=recipe['cantitate'], min_value=0.0, step=0.1)
-                            
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.form_submit_button("💾 Salvează modificările"):
-                                    st.session_state.retetar[current_food][recipe_index] = {
-                                        'id': recipe['id'],
-                                        'ingredient': edit_ingredient,
-                                        'um': edit_um,
-                                        'cantitate': edit_cantitate
-                                    }
-                                    st.success("Rețeta actualizată!")
-                                    st.rerun()
-                            
-                            with col2:
-                                if st.form_submit_button("🗑️ Șterge rețeta"):
-                                    del st.session_state.retetar[current_food][recipe_index]
-                                    st.success("Rețeta ștearsă!")
-                                    st.rerun()
+                    col_save, col_cancel = st.columns(2)
+                    with col_save:
+                        if st.form_submit_button("💾 Salvează", use_container_width=True):
+                            # Actualizează ingredientul
+                            recetar_data[reteta_idx]['nume'] = edit_aliment
+                            recetar_data[reteta_idx]['ingrediente'][ingredient_idx] = {
+                                'ingredient': edit_ingredient,
+                                'um': edit_um,
+                                'cantitate': edit_cantitate
+                            }
+                            save_data(recetar_data, RECETAR_FILE)
+                            st.session_state.edit_mode['recetar'] = None
+                            st.success("Ingredient actualizat!")
+                            st.rerun()
+                    
+                    with col_cancel:
+                        if st.form_submit_button("❌ Anulează", use_container_width=True):
+                            st.session_state.edit_mode['recetar'] = None
+                            st.rerun()
         else:
-            st.info(f"Nu există rețete pentru {current_food}. Adaugă prima rețetă!")
+            st.subheader("Adaugă Ingredient Nou")
+            
+            with st.form("add_recetar_form"):
+                new_aliment = st.text_input("Aliment")
+                new_ingredient = st.text_input("Ingredient")
+                new_um = st.selectbox("UM", ['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'])
+                new_cantitate = st.number_input("Cantitate/Porție", min_value=0.0, step=0.1)
+                
+                if st.form_submit_button("➕ Adaugă Ingredient", use_container_width=True):
+                    if new_aliment and new_ingredient and new_cantitate > 0:
+                        # Caută dacă alimentul există deja
+                        found = False
+                        for reteta in recetar_data:
+                            if reteta['nume'].lower() == new_aliment.lower():
+                                reteta['ingrediente'].append({
+                                    'ingredient': new_ingredient,
+                                    'um': new_um,
+                                    'cantitate': new_cantitate
+                                })
+                                found = True
+                                break
+                        
+                        if not found:
+                            # Creează o rețetă nouă
+                            recetar_data.append({
+                                'nume': new_aliment,
+                                'ingrediente': [{
+                                    'ingredient': new_ingredient,
+                                    'um': new_um,
+                                    'cantitate': new_cantitate
+                                }]
+                            })
+                        
+                        save_data(recetar_data, RECETAR_FILE)
+                        st.success("Ingredient adăugat!")
+                        st.rerun()
+                    else:
+                        st.error("Completează toate câmpurile!")
 
 # TAB 2: COORDONATE CZA
 with tab2:
-    st.header("📍 Coordonate CZA")
+    st.header("Coordonate CZA")
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        loc_consum = st.selectbox("Loc consum:", ["C1", "C2", "C3"], key="coord_loc")
+        loc_consum = st.selectbox("Loc Consum", ['C1', 'C2', 'C3'], 
+                                 index=['C1', 'C2', 'C3'].index(st.session_state.selected_coords['loc_consum']))
     
     with col2:
-        masa_zi = st.selectbox("Masa din zi:", ["M1", "M2", "M3", "M4", "M5"], key="coord_masa")
+        masa_zi = st.selectbox("Masa din zi", ['M1', 'M2', 'M3', 'M4', 'M5'],
+                              index=['M1', 'M2', 'M3', 'M4', 'M5'].index(st.session_state.selected_coords['masa_zi']))
     
     with col3:
-        regim = st.selectbox("Regim alimentar:", ["R1", "R2", "R3", "R4", "R5", "R6"], key="coord_regim")
+        regim_alimentar = st.selectbox("Regim Alimentar", ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'],
+                                      index=['R1', 'R2', 'R3', 'R4', 'R5', 'R6'].index(st.session_state.selected_coords['regim_alimentar']))
     
     with col4:
-        data_coord = st.date_input("Data:", value=date.today(), key="coord_data")
+        data_selectata = st.date_input("Data", value=datetime.strptime(st.session_state.selected_coords['data'], '%d.%m.%Y'))
+        data_str = data_selectata.strftime('%d.%m.%Y')
     
-    # Afișare coordonate selectate
-    st.info(f"**Coordonate selectate:** {loc_consum} - {masa_zi} - {regim} - {format_date(data_coord)}")
-    
-    # Stocare coordonate în session state pentru utilizare în alte taburi
-    st.session_state.current_coords = {
-        'loc': loc_consum,
-        'masa': masa_zi,
-        'regim': regim,
-        'data': format_date(data_coord)
+    # Actualizează coordonatele în session state
+    st.session_state.selected_coords = {
+        'loc_consum': loc_consum,
+        'masa_zi': masa_zi,
+        'regim_alimentar': regim_alimentar,
+        'data': data_str
     }
-
-# TAB 3: CZA (Cantitate Zilnică Alimente)
-with tab3:
-    st.header("📊 CZA - Cantitate Zilnică Alimente")
     
-    # Verificare dacă există coordonate selectate
-    if 'current_coords' not in st.session_state:
-        st.warning("Selectează coordonatele în tab-ul 'Coordonate CZA' mai întâi!")
-    else:
-        coords = st.session_state.current_coords
-        coord_key = f"{coords['loc']}_{coords['masa']}_{coords['regim']}_{coords['data']}"
+    st.info(f"**Coordonate selectate:** {loc_consum} | {masa_zi} | {regim_alimentar} | {data_str}")
+
+# TAB 3: CZA
+with tab3:
+    st.header("CZA (Cantitate Zilnică Alimente)")
+    
+    # Generează cheia pentru coordonatele curente
+    coords_key = f"{st.session_state.selected_coords['loc_consum']}_{st.session_state.selected_coords['masa_zi']}_{st.session_state.selected_coords['regim_alimentar']}_{st.session_state.selected_coords['data']}"
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Afișare date CZA pentru coordonatele selectate
+        cza_data = load_data(CZA_FILE)
+        current_cza = cza_data.get(coords_key, [])
         
-        st.info(f"**Coordonate active:** {coords['loc']} - {coords['masa']} - {coords['regim']} - {coords['data']}")
-        
-        # Inițializare date pentru coordonatele curente
-        if coord_key not in st.session_state.cza_data:
-            st.session_state.cza_data[coord_key] = {}
-        
-        # Selectare aliment pentru CZA
-        available_foods = list(st.session_state.alimente_list) if st.session_state.alimente_list else []
-        
-        if not available_foods:
-            st.warning("Nu există alimente în rețetar! Adaugă alimente în tab-ul 'Rețetar' mai întâi.")
-        else:
-            selected_cza_food = st.selectbox("Selectează aliment pentru CZA:", [""] + available_foods, key="cza_food_select")
+        if current_cza:
+            st.subheader(f"CZA pentru {coords_key.replace('_', ' | ')}")
             
-            if selected_cza_food:
-                st.subheader(f"CZA pentru: {selected_cza_food}")
+            for i, record in enumerate(current_cza):
+                col_data, col_edit, col_delete = st.columns([4, 1, 1])
                 
-                # Inițializare aliment pentru coordonatele curente
-                if selected_cza_food not in st.session_state.cza_data[coord_key]:
-                    st.session_state.cza_data[coord_key][selected_cza_food] = []
+                with col_data:
+                    st.write(f"**{record['ingredient']}**: {record['nr_persoane']} pers. × {record['cantitate_per_persoana']} {record['um']} = {record['cantitate_totala']} {record['um']}")
                 
-                # Formular pentru adăugare CZA
-                with st.expander("➕ Adaugă înregistrare CZA", expanded=False):
-                    if selected_cza_food in st.session_state.retetar and st.session_state.retetar[selected_cza_food]:
-                        col1, col2, col3, col4, col5 = st.columns(5)
-                        
-                        with col1:
-                            # Selectare ingredient din rețetar
-                            ingredients = [r['ingredient'] for r in st.session_state.retetar[selected_cza_food]]
-                            selected_ingredient = st.selectbox("Ingredient:", ingredients, key=f"cza_ingredient_{coord_key}")
-                        
-                        with col2:
-                            nr_persoane = st.number_input("Nr. persoane:", min_value=1, value=1, key=f"cza_persoane_{coord_key}")
-                        
-                        with col3:
-                            # Găsire UM pentru ingredientul selectat
-                            ingredient_data = next((r for r in st.session_state.retetar[selected_cza_food] if r['ingredient'] == selected_ingredient), None)
-                            if ingredient_data:
-                                st.text_input("UM:", value=ingredient_data['um'], disabled=True, key=f"cza_um_display_{coord_key}")
-                                current_um = ingredient_data['um']
-                            else:
-                                current_um = "g"
-                        
-                        with col4:
-                            cantitate_cza = st.number_input("Cantitate:", min_value=0.0, step=0.1, key=f"cza_cantitate_{coord_key}")
-                        
-                        with col5:
-                            st.write("")
-                            st.write("")
-                            if st.button("💾 Adaugă CZA", key=f"add_cza_{coord_key}"):
-                                if cantitate_cza > 0:
-                                    new_cza = {
-                                        'id': str(uuid.uuid4()),
-                                        'ingredient': selected_ingredient,
-                                        'nr_persoane': nr_persoane,
-                                        'um': current_um,
-                                        'cantitate': cantitate_cza,
-                                        'total_cantitate': cantitate_cza * nr_persoane
-                                    }
-                                    st.session_state.cza_data[coord_key][selected_cza_food].append(new_cza)
-                                    st.success("Înregistrare CZA adăugată!")
-                                    st.rerun()
-                    else:
-                        st.warning(f"Nu există rețete pentru {selected_cza_food} în rețetar!")
+                with col_edit:
+                    if st.button("✏️", key=f"edit_cza_{i}", help="Editează"):
+                        st.session_state.edit_mode['cza'] = i
+                        st.rerun()
                 
-                # Afișare înregistrări CZA existente
-                if st.session_state.cza_data[coord_key][selected_cza_food]:
-                    st.subheader("Înregistrări CZA existente:")
+                with col_delete:
+                    if st.button("🗑️", key=f"delete_cza_{i}", help="Șterge"):
+                        del current_cza[i]
+                        cza_data[coords_key] = current_cza
+                        if not current_cza:
+                            del cza_data[coords_key]
+                        save_data(cza_data, CZA_FILE)
+                        st.rerun()
+        else:
+            st.info("Nu există înregistrări CZA pentru coordonatele selectate.")
+    
+    with col2:
+        # Formular pentru adăugare/editare CZA
+        alimente_disponibile = get_unique_alimente()
+        
+        if alimente_disponibile:
+            if st.session_state.edit_mode['cza'] is not None:
+                st.subheader("Editează CZA")
+                
+                if st.session_state.edit_mode['cza'] < len(current_cza):
+                    current_record = current_cza[st.session_state.edit_mode['cza']]
                     
-                    # Creare DataFrame pentru afișare
-                    cza_data_list = []
-                    for cza in st.session_state.cza_data[coord_key][selected_cza_food]:
-                        cza_data_list.append({
-                            'Ingredient': cza['ingredient'],
-                            'Nr. Persoane': cza['nr_persoane'],
-                            'UM': cza['um'],
-                            'Cantitate': cza['cantitate'],
-                            'Total Cantitate': cza['total_cantitate'],
-                            'ID': cza['id']
-                        })
-                    
-                    df_cza = pd.DataFrame(cza_data_list)
-                    st.dataframe(df_cza[['Ingredient', 'Nr. Persoane', 'UM', 'Cantitate', 'Total Cantitate']], use_container_width=True)
-                    
-                    # Editare/ștergere CZA
-                    cza_to_edit = st.selectbox("Selectează înregistrare pentru editare:", 
-                                             [""] + [f"{c['ingredient']} - {c['cantitate']} {c['um']}" for c in st.session_state.cza_data[coord_key][selected_cza_food]], 
-                                             key=f"edit_cza_{coord_key}")
-                    
-                    if cza_to_edit:
-                        cza_index = next((i for i, c in enumerate(st.session_state.cza_data[coord_key][selected_cza_food]) 
-                                        if f"{c['ingredient']} - {c['cantitate']} {c['um']}" == cza_to_edit), None)
+                    with st.form("edit_cza_form"):
+                        edit_ingredient = st.selectbox("Ingredient", alimente_disponibile,
+                                                     index=alimente_disponibile.index(current_record['ingredient']) if current_record['ingredient'] in alimente_disponibile else 0)
+                        edit_nr_persoane = st.number_input("Nr. Persoane", value=current_record['nr_persoane'], min_value=1, step=1)
+                        edit_um = st.selectbox("UM", ['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'],
+                                             index=['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'].index(current_record['um']) if current_record['um'] in ['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'] else 0)
+                        edit_cantitate_per_persoana = st.number_input("Cantitate per persoană", value=current_record['cantitate_per_persoana'], min_value=0.0, step=0.1)
                         
-                        if cza_index is not None:
-                            cza = st.session_state.cza_data[coord_key][selected_cza_food][cza_index]
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.form_submit_button("💾 Salvează", use_container_width=True):
+                                cantitate_totala = edit_nr_persoane * edit_cantitate_per_persoana
+                                
+                                current_cza[st.session_state.edit_mode['cza']] = {
+                                    'ingredient': edit_ingredient,
+                                    'nr_persoane': edit_nr_persoane,
+                                    'um': edit_um,
+                                    'cantitate_per_persoana': edit_cantitate_per_persoana,
+                                    'cantitate_totala': cantitate_totala
+                                }
+                                
+                                cza_data[coords_key] = current_cza
+                                save_data(cza_data, CZA_FILE)
+                                st.session_state.edit_mode['cza'] = None
+                                st.success("CZA actualizat!")
+                                st.rerun()
+                        
+                        with col_cancel:
+                            if st.form_submit_button("❌ Anulează", use_container_width=True):
+                                st.session_state.edit_mode['cza'] = None
+                                st.rerun()
+            else:
+                st.subheader("Adaugă CZA Nou")
+                
+                with st.form("add_cza_form"):
+                    cza_ingredient = st.selectbox("Ingredient", [''] + alimente_disponibile)
+                    cza_nr_persoane = st.number_input("Nr. Persoane", min_value=1, value=1, step=1)
+                    cza_um = st.selectbox("UM", ['g', 'kg', 'ml', 'l', 'buc', 'lingură', 'linguriță', 'cană'])
+                    cza_cantitate_per_persoana = st.number_input("Cantitate per persoană", min_value=0.0, step=0.1)
+                    
+                    if st.form_submit_button("➕ Adaugă CZA", use_container_width=True):
+                        if cza_ingredient and cza_cantitate_per_persoana > 0:
+                            cantitate_totala = cza_nr_persoane * cza_cantitate_per_persoana
                             
-                            with st.form(f"edit_cza_form_{coord_key}_{cza_index}"):
-                                col1, col2, col3 = st.columns(3)
-                                
-                                with col1:
-                                    edit_nr_persoane = st.number_input("Nr. persoane:", value=cza['nr_persoane'], min_value=1)
-                                with col2:
-                                    st.text_input("UM:", value=cza['um'], disabled=True)
-                                with col3:
-                                    edit_cantitate_cza = st.number_input("Cantitate:", value=cza['cantitate'], min_value=0.0, step=0.1)
-                                
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    if st.form_submit_button("💾 Salvează modificările"):
-                                        st.session_state.cza_data[coord_key][selected_cza_food][cza_index] = {
-                                            'id': cza['id'],
-                                            'ingredient': cza['ingredient'],
-                                            'nr_persoane': edit_nr_persoane,
-                                            'um': cza['um'],
-                                            'cantitate': edit_cantitate_cza,
-                                            'total_cantitate': edit_cantitate_cza * edit_nr_persoane
-                                        }
-                                        st.success("Înregistrare CZA actualizată!")
-                                        st.rerun()
-                                
-                                with col2:
-                                    if st.form_submit_button("🗑️ Șterge înregistrarea"):
-                                        del st.session_state.cza_data[coord_key][selected_cza_food][cza_index]
-                                        st.success("Înregistrare CZA ștearsă!")
-                                        st.rerun()
-                else:
-                    st.info(f"Nu există înregistrări CZA pentru {selected_cza_food} la coordonatele selectate.")
+                            new_record = {
+                                'ingredient': cza_ingredient,
+                                'nr_persoane': cza_nr_persoane,
+                                'um': cza_um,
+                                'cantitate_per_persoana': cza_cantitate_per_persoana,
+                                'cantitate_totala': cantitate_totala
+                            }
+                            
+                            if coords_key not in cza_data:
+                                cza_data[coords_key] = []
+                            cza_data[coords_key].append(new_record)
+                            
+                            save_data(cza_data, CZA_FILE)
+                            st.success("CZA adăugat!")
+                            st.rerun()
+                        else:
+                            st.error("Selectează ingredientul și completează cantitatea!")
+        else:
+            st.warning("Nu există alimente în rețetar. Adaugă mai întâi alimente în rețetar.")
 
 # TAB 4: LISTĂ ALIMENTE
 with tab4:
-    st.header("📝 Listă Alimente")
+    st.header("Listă Alimente")
     
-    # Selectare data pentru calculare
-    data_lista = st.date_input("Selectează data pentru listă:", value=date.today(), key="data_lista")
-    data_lista_str = format_date(data_lista)
+    # Selectare dată pentru lista de alimente
+    data_lista = st.date_input("Selectează data pentru lista de alimente", 
+                              value=datetime.strptime(st.session_state.selected_coords['data'], '%d.%m.%Y'),
+                              key="data_lista")
+    data_lista_str = data_lista.strftime('%d.%m.%Y')
     
-    st.subheader(f"Lista alimentelor pentru data: {data_lista_str}")
+    st.subheader(f"Lista de alimente pentru {data_lista_str}")
     
-    # Calculare totaluri pentru data selectată
-    ingredient_totals = {}
+    # Calculează totalurile pentru data selectată
+    cza_data = load_data(CZA_FILE)
+    totals = {}
     
-    # Parcurgere toate coordonatele CZA pentru data selectată
-    for coord_key, coord_data in st.session_state.cza_data.items():
-        coord_parts = coord_key.split('_')
-        if len(coord_parts) == 4 and coord_parts[3] == data_lista_str:
-            # Pentru fiecare aliment din această coordonată
-            for food, cza_records in coord_data.items():
-                for cza in cza_records:
-                    ingredient = cza['ingredient']
-                    um = cza['um']
-                    total_cantitate = cza['total_cantitate']
-                    
-                    # Cheie unică pentru ingredient + UM
-                    key = f"{ingredient}_{um}"
-                    
-                    if key not in ingredient_totals:
-                        ingredient_totals[key] = {
-                            'ingredient': ingredient,
-                            'um': um,
-                            'total': 0
-                        }
-                    
-                    ingredient_totals[key]['total'] += total_cantitate
+    for coords_key, records in cza_data.items():
+        # Extrage data din cheia coordonatelor
+        parts = coords_key.split('_')
+        if len(parts) >= 4 and parts[3] == data_lista_str:
+            for record in records:
+                ingredient = record['ingredient']
+                um = record['um']
+                cantitate = record['cantitate_totala']
+                
+                key = f"{ingredient}_{um}"
+                if key not in totals:
+                    totals[key] = {'ingredient': ingredient, 'um': um, 'cantitate_totala': 0}
+                totals[key]['cantitate_totala'] += cantitate
     
-    # Afișare rezultate
-    if ingredient_totals:
-        lista_data = []
-        for key, data in ingredient_totals.items():
-            lista_data.append({
-                'Ingredient': data['ingredient'],
-                'UM': data['um'],
-                'Cantitate Totală': round(data['total'], 2)
-            })
+    if totals:
+        # Afișează rezultatele
+        st.success(f"Găsite {len(totals)} ingrediente pentru data {data_lista_str}")
         
-        df_lista = pd.DataFrame(lista_data)
-        df_lista = df_lista.sort_values('Ingredient')
+        # Sortează după nume ingredient
+        sorted_totals = sorted(totals.values(), key=lambda x: x['ingredient'])
         
-        st.dataframe(df_lista, use_container_width=True)
+        for total in sorted_totals:
+            st.write(f"**{total['ingredient']}**: {total['cantitate_totala']:.1f} {total['um']}")
         
         # Opțiune de export
-        csv = df_lista.to_csv(index=False)
-        st.download_button(
-            label="📥 Descarcă lista ca CSV",
-            data=csv,
-            file_name=f"lista_alimente_{data_lista_str.replace('.', '_')}.csv",
-            mime='text/csv'
-        )
-        
-        # Statistici
-        st.subheader("📈 Statistici")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.metric("Total ingrediente", len(df_lista))
-        
-        with col2:
-            st.metric("Total înregistrări CZA", sum(len(cza_records) for coord_data in st.session_state.cza_data.values() 
-                                                   for cza_records in coord_data.values() 
-                                                   if any(coord_key.endswith(data_lista_str) for coord_key in st.session_state.cza_data.keys())))
-        
+        if st.button("📥 Exportă lista"):
+            export_data = []
+            for total in sorted_totals:
+                export_data.append({
+                    'Ingredient': total['ingredient'],
+                    'Cantitate Totală': total['cantitate_totala'],
+                    'UM': total['um']
+                })
+            
+            df_export = pd.DataFrame(export_data)
+            csv = df_export.to_csv(index=False, encoding='utf-8-sig')
+            
+            st.download_button(
+                label="💾 Descarcă CSV",
+                data=csv,
+                file_name=f"lista_alimente_{data_lista_str.replace('.', '_')}.csv",
+                mime="text/csv"
+            )
     else:
-        st.info(f"Nu există date CZA pentru data {data_lista_str}")
+        st.info(f"Nu există înregistrări CZA pentru data {data_lista_str}")
 
-# Sidebar cu informații
-with st.sidebar:
-    st.header("📊 Rezumat Aplicație")
-    st.write(f"**Alimente în rețetar:** {len(st.session_state.retetar)}")
-    
-    total_recipes = sum(len(recipes) for recipes in st.session_state.retetar.values())
-    st.write(f"**Total rețete:** {total_recipes}")
-    
-    total_coords = len(st.session_state.cza_data)
-    st.write(f"**Coordonate CZA:** {total_coords}")
-    
-    total_cza = sum(len(cza_records) for coord_data in st.session_state.cza_data.values() for cza_records in coord_data.values())
-    st.write(f"**Total înregistrări CZA:** {total_cza}")
-    
-    if st.button("🗑️ Resetează toate datele"):
-        st.session_state.retetar = {}
-        st.session_state.cza_data = {}
-        st.session_state.alimente_list = set()
-        st.success("Toate datele au fost resetate!")
-        st.rerun()
+# Footer
+st.markdown("---")
+st.markdown("💾 **Stocare**: Toate datele sunt salvate persistent în `$HOME/data/`")
