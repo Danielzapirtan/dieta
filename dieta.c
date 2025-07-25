@@ -333,7 +333,7 @@ void set_coordinates() {
     fgets(date_input, sizeof(date_input), stdin);
     date_input[strcspn(date_input, "\n")] = 0;
     
-    if (strlen(date_input) {
+    if (strlen(date_input)) {
         strcpy(current_coords.data, date_input);
     } else {
         get_current_date(current_coords.data);
