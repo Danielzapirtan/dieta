@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dieta - Aplicație gestionare alimentație</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        h1 {
+            margin: 0;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: #34495e;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: white;
+            flex: 1;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        .tab:hover {
+            background-color: #3d566e;
+        }
+        .tab.active {
+            background-color: #1abc9c;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1abc9c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #16a085;
+        }
+        .btn-secondary {
+            background-color: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .action-buttons button {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .meal-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .meal-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .export-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dieta - Gestionare Alimentație</h1>
+        </header>
+
+        <div class="tabs">
+            <div class="tab active" onclick="openTab(event, 'retetar')">Rețetar</div>
+            <div class="tab" onclick="openTab(event, 'persoane')">Număr de persoane</div>
+            <div class="tab" onclick="openTab(event, 'cza')">CZA</div>
+            <div class="tab" onclick="openTab(event, 'alimente')">Listă alimente</div>
+        </div>
+
+        <!-- Rețetar Tab -->
+        <div id="retetar" class="tab-content active">
+            <h2>Rețetar</h2>
+            <button onclick="showRecipeForm()">Adaugă rețetă nouă</button>
+            
+            <div id="recipe-form" style="display: none; margin-top: 20px;">
+                <h3>Adaugă/Editează Rețetă</h3>
+                <div class="form-group">
+                    <label for="recipe-name">Nume rețetă:</label>
+                    <input type="text" id="recipe-name" required>
+                </div>
+                
+                <h4>Alimente în compoziție:</h4>
+                <div id="ingredients-container">
+                    <div class="ingredient">
+                        <div class="form-group">
+                            <label>Aliment:</label>
+                            <select class="food-select">
+                                <option value="">Selectează aliment</option>
+                                <!-- Options will be populated by JS -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>UM:</label>
+                            <input type="text" class="unit" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Cantitate/porție:</label>
+                            <input type="number" class="quantity" step="0.01" min="0">
+                        </div>
+                        <button class="btn-danger" onclick="removeIngredient(this)">Șterge</button>
+                    </div>
+                </div>
+                <button onclick="addIngredient()">Adaugă aliment</button>
+                
+                <div style="margin-top: 20px;">
+                    <button onclick="saveRecipe()">Salvează</button>
+                    <button class="btn-secondary" onclick="cancelRecipeEdit()">Anulează</button>
+                </div>
+            </div>
+            
+            <h3>Listă rețete</h3>
+            <table id="recipes-table">
+                <thead>
+                    <tr>
+                        <th>Nume rețetă</th>
+                        <th>Alimente</th>
+                        <th>UM</th>
+                        <th>Cantitate/porție</th>
+                        <th>Acțiuni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be populated by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Număr de persoane Tab -->
+        <div id="persoane" class="tab-content">
+            <h2>Număr de persoane</h2>
+            <table id="people-table">
+                <thead>
+                    <tr>
+                        <th>Regim/Loc consum</th>
+                        <th>C1</th>
+                        <th>C2</th>
+                        <th>C3</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>R1</td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R1" data-loc="C1"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R1" data-loc="C2"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R1" data-loc="C3"></td>
+                    </tr>
+                    <tr>
+                        <td>R2</td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R2" data-loc="C1"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R2" data-loc="C2"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R2" data-loc="C3"></td>
+                    </tr>
+                    <tr>
+                        <td>R3</td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R3" data-loc="C1"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R3" data-loc="C2"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R3" data-loc="C3"></td>
+                    </tr>
+                    <tr>
+                        <td>R4</td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R4" data-loc="C1"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R4" data-loc="C2"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R4" data-loc="C3"></td>
+                    </tr>
+                    <tr>
+                        <td>R5</td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R5" data-loc="C1"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R5" data-loc="C2"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R5" data-loc="C3"></td>
+                    </tr>
+                    <tr>
+                        <td>R6</td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R6" data-loc="C1"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R6" data-loc="C2"></td>
+                        <td><input type="number" min="0" max="127" value="0" class="people-input" data-regim="R6" data-loc="C3"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button onclick="savePeopleCount()">Salvează număr persoane</button>
+        </div>
+
+        <!-- CZA Tab -->
+        <div id="cza" class="tab-content">
+            <h2>Compoziția zilnică a alimentelor</h2>
+            
+            <div class="date-selector">
+                <label for="cza-date">Selectează data:</label>
+                <input type="date" id="cza-date">
+                <button onclick="loadDailyMenu()">Încarcă meniu</button>
+                <button onclick="createNewDailyMenu()">Meniu nou</button>
+            </div>
+            
+            <div id="daily-menu-container">
+                <!-- M1 -->
+                <div class="meal-section">
+                    <div class="meal-header">M1 - Micul dejun</div>
+                    <div class="form-group">
+                        <label>Selectează rețete:</label>
+                        <select class="recipe-select" multiple>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Selectează regimuri:</label>
+                        <select class="regim-select" multiple>
+                            <option value="R1">R1</option>
+                            <option value="R2">R2</option>
+                            <option value="R3">R3</option>
+                            <option value="R4">R4</option>
+                            <option value="R5">R5</option>
+                            <option value="R6">R6</option>
+                        </select>
+                    </div>
+                    
+                    <div id="m1-tables">
+                        <!-- Tables will be generated by JS -->
+                    </div>
+                </div>
+                
+                <!-- M2 -->
+                <div class="meal-section">
+                    <div class="meal-header">M2 - Gustare dimineață</div>
+                    <div class="form-group">
+                        <label>Selectează rețete:</label>
+                        <select class="recipe-select" multiple>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Selectează regimuri:</label>
+                        <select class="regim-select" multiple>
+                            <option value="R1">R1</option>
+                            <option value="R2">R2</option>
+                            <option value="R3">R3</option>
+                            <option value="R4">R4</option>
+                            <option value="R5">R5</option>
+                            <option value="R6">R6</option>
+                        </select>
+                    </div>
+                    
+                    <div id="m2-tables">
+                        <!-- Tables will be generated by JS -->
+                    </div>
+                </div>
+                
+                <!-- M3 -->
+                <div class="meal-section">
+                    <div class="meal-header">M3 - Prânz</div>
+                    <div class="form-group">
+                        <label>Selectează rețete:</label>
+                        <select class="recipe-select" multiple>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Selectează regimuri:</label>
+                        <select class="regim-select" multiple>
+                            <option value="R1">R1</option>
+                            <option value="R2">R2</option>
+                            <option value="R3">R3</option>
+                            <option value="R4">R4</option>
+                            <option value="R5">R5</option>
+                            <option value="R6">R6</option>
+                        </select>
+                    </div>
+                    
+                    <div id="m3-tables">
+                        <!-- Tables will be generated by JS -->
+                    </div>
+                </div>
+                
+                <!-- M4 -->
+                <div class="meal-section">
+                    <div class="meal-header">M4 - Gustare după-amiază</div>
+                    <div class="form-group">
+                        <label>Selectează rețete:</label>
+                        <select class="recipe-select" multiple>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Selectează regimuri:</label>
+                        <select class="regim-select" multiple>
+                            <option value="R1">R1</option>
+                            <option value="R2">R2</option>
+                            <option value="R3">R3</option>
+                            <option value="R4">R4</option>
+                            <option value="R5">R5</option>
+                            <option value="R6">R6</option>
+                        </select>
+                    </div>
+                    
+                    <div id="m4-tables">
+                        <!-- Tables will be generated by JS -->
+                    </div>
+                </div>
+                
+                <!-- M5 -->
+                <div class="meal-section">
+                    <div class="meal-header">M5 - Cină</div>
+                    <div class="form-group">
+                        <label>Selectează rețete:</label>
+                        <select class="recipe-select" multiple>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Selectează regimuri:</label>
+                        <select class="regim-select" multiple>
+                            <option value="R1">R1</option>
+                            <option value="R2">R2</option>
+                            <option value="R3">R3</option>
+                            <option value="R4">R4</option>
+                            <option value="R5">R5</option>
+                            <option value="R6">R6</option>
+                        </select>
+                    </div>
+                    
+                    <div id="m5-tables">
+                        <!-- Tables will be generated by JS -->
+                    </div>
+                </div>
+                
+                <button onclick="saveDailyMenu()">Salvează meniu zilnic</button>
+            </div>
+        </div>
+
+        <!-- Listă alimente Tab -->
+        <div id="alimente" class="tab-content">
+            <h2>Listă alimente</h2>
+            
+            <div class="date-selector">
+                <label for="food-list-date">Selectează data:</label>
+                <input type="date" id="food-list-date">
+                <button onclick="loadFoodList()">Încarcă lista</button>
+            </div>
+            
+            <table id="food-list-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>ID document</th>
+                        <th>Tip document</th>
+                        <th>Nume aliment</th>
+                        <th>UM</th>
+                        <th>Cantitate totală</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be populated by JS -->
+                </tbody>
+            </table>
+            
+            <div class="export-buttons">
+                <button onclick="exportFoodListToPDF()">Exportă lista alimente PDF</button>
+                <button onclick="exportDailyMenuToPDF()">Exportă meniu zilnic PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data storage (in a real app, this would be server-side)
+        let recipes = [];
+        let peopleCounts = {};
+        let dailyMenus = {};
+        let foods = [
+            { id: 1, name: "Pâine", unit: "buc" },
+            { id: 2, name: "Lapte", unit: "l" },
+            { id: 3, name: "Ouă", unit: "buc" },
+            { id: 4, name: "Brânză", unit: "kg" },
+            { id: 5, name: "Șuncă", unit: "kg" },
+            { id: 6, name: "Fructe", unit: "kg" }
+        ];
+        
+        // Initialize people counts
+        for (let r = 1; r <= 6; r++) {
+            peopleCounts[`R${r}`] = { C1: 0, C2: 0, C3: 0 };
+        }
+        
+        // Tab switching
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            const tabs = document.getElementsByClassName("tab");
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        // Rețetar functions
+        function showRecipeForm(recipeId) {
+            const form = document.getElementById("recipe-form");
+            form.style.display = "block";
+            
+            if (recipeId) {
+                // Edit mode
+                const recipe = recipes.find(r => r.id === recipeId);
+                document.getElementById("recipe-name").value = recipe.name;
+                
+                // Clear existing ingredients
+                const container = document.getElementById("ingredients-container");
+                container.innerHTML = "";
+                
+                // Add ingredients from recipe
+                recipe.ingredients.forEach(ing => {
+                    addIngredient(ing.foodId, ing.quantity);
+                });
+            } else {
+                // Add mode
+                document.getElementById("recipe-name").value = "";
+                const container = document.getElementById("ingredients-container");
+                container.innerHTML = "";
+                addIngredient();
+            }
+        }
+        
+        function addIngredient(foodId, quantity) {
+            const container = document.getElementById("ingredients-container");
+            const div = document.createElement("div");
+            div.className = "ingredient";
+            div.innerHTML = `
+                <div class="form-group">
+                    <label>Aliment:</label>
+                    <select class="food-select" onchange="updateUnit(this)">
+                        <option value="">Selectează aliment</option>
+                        ${foods.map(f => `<option value="${f.id}" ${foodId === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>UM:</label>
+                    <input type="text" class="unit" readonly value="${foodId ? foods.find(f => f.id === foodId).unit : ''}">
+                </div>
+                <div class="form-group">
+                    <label>Cantitate/porție:</label>
+                    <input type="number" class="quantity" step="0.01" min="0" value="${quantity || ''}">
+                </div>
+                <button class="btn-danger" onclick="removeIngredient(this)">Șterge</button>
+            `;
+            container.appendChild(div);
+        }
+        
+        function removeIngredient(button) {
+            const container = document.getElementById("ingredients-container");
+            if (container.children.length > 1) {
+                button.parentElement.remove();
+            } else {
+                alert("O rețetă trebuie să aibă cel puțin un aliment!");
+            }
+        }
+        
+        function updateUnit(select) {
+            const foodId = parseInt(select.value);
+            const food = foods.find(f => f.id === foodId);
+            if (food) {
+                const unitInput = select.parentElement.parentElement.querySelector('.unit');
+                unitInput.value = food.unit;
+            }
+        }
+        
+        function saveRecipe() {
+            const name = document.getElementById("recipe-name").value.trim();
+            if (!name) {
+                alert("Introduceți un nume pentru rețetă!");
+                return;
+            }
+            
+            const ingredients = [];
+            const ingredientDivs = document.getElementById("ingredients-container").children;
+            
+            for (let div of ingredientDivs) {
+                const foodSelect = div.querySelector('.food-select');
+                const quantityInput = div.querySelector('.quantity');
+                
+                if (!foodSelect.value || !quantityInput.value) {
+                    alert("Toate câmpurile pentru alimente trebuie completate!");
+                    return;
+                }
+                
+                ingredients.push({
+                    foodId: parseInt(foodSelect.value),
+                    quantity: parseFloat(quantityInput.value)
+                });
+            }
+            
+            // Generate ID (in real app, this would be server-side)
+            const id = recipes.length > 0 ? Math.max(...recipes.map(r => r.id)) + 1 : 1;
+            
+            const recipe = {
+                id,
+                name,
+                ingredients
+            };
+            
+            // Check if we're editing or adding new
+            const existingIndex = recipes.findIndex(r => r.id === id);
+            if (existingIndex >= 0) {
+                recipes[existingIndex] = recipe;
+            } else {
+                recipes.push(recipe);
+            }
+            
+            cancelRecipeEdit();
+            updateRecipesTable();
+        }
+        
+        function cancelRecipeEdit() {
+            document.getElementById("recipe-form").style.display = "none";
+        }
+        
+        function updateRecipesTable() {
+            const tbody = document.querySelector("#recipes-table tbody");
+            tbody.innerHTML = "";
+            
+            recipes.forEach(recipe => {
+                const row = document.createElement("tr");
+                
+                // Name cell
+                const nameCell = document.createElement("td");
+                nameCell.textContent = recipe.name;
+                row.appendChild(nameCell);
+                
+                // Ingredients cells (we'll show first 3 ingredients)
+                const foodsCell = document.createElement("td");
+                foodsCell.textContent = recipe.ingredients.map(ing => {
+                    const food = foods.find(f => f.id === ing.foodId);
+                    return food ? food.name : "Necunoscut";
+                }).join(", ");
+                row.appendChild(foodsCell);
+                
+                const unitsCell = document.createElement("td");
+                unitsCell.textContent = recipe.ingredients.map(ing => {
+                    const food = foods.find(f => f.id === ing.foodId);
+                    return food ? food.unit : "-";
+                }).join(", ");
+                row.appendChild(unitsCell);
+                
+                const quantitiesCell = document.createElement("td");
+                quantitiesCell.textContent = recipe.ingredients.map(ing => ing.quantity).join(", ");
+                row.appendChild(quantitiesCell);
+                
+                // Actions cell
+                const actionsCell = document.createElement("td");
+                actionsCell.className = "action-buttons";
+                actionsCell.innerHTML = `
+                    <button onclick="showRecipeForm(${recipe.id})">Editează</button>
+                    <button class="btn-danger" onclick="deleteRecipe(${recipe.id})">Șterge</button>
+                `;
+                row.appendChild(actionsCell);
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function deleteRecipe(id) {
+            if (confirm("Sigur doriți să ștergeți această rețetă?")) {
+                recipes = recipes.filter(r => r.id !== id);
+                updateRecipesTable();
+            }
+        }
+        
+        // Număr de persoane functions
+        function savePeopleCount() {
+            const inputs = document.querySelectorAll('.people-input');
+            inputs.forEach(input => {
+                const regim = input.dataset.regim;
+                const loc = input.dataset.loc;
+                peopleCounts[regim][loc] = parseInt(input.value) || 0;
+            });
+            alert("Numărul de persoane a fost salvat!");
+        }
+        
+        // CZA functions
+        function loadDailyMenu() {
+            const date = document.getElementById("cza-date").value;
+            if (!date) {
+                alert("Selectați o dată!");
+                return;
+            }
+            
+            // In a real app, this would load from server
+            const menu = dailyMenus[date] || {
+                date,
+                meals: {
+                    M1: { recipes: [], regims: [] },
+                    M2: { recipes: [], regims: [] },
+                    M3: { recipes: [], regims: [] },
+                    M4: { recipes: [], regims: [] },
+                    M5: { recipes: [], regims: [] }
+                }
+            };
+            
+            // Update UI for each meal
+            for (let i = 1; i <= 5; i++) {
+                const meal = menu.meals[`M${i}`];
+                const recipeSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .recipe-select`);
+                const regimSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .regim-select`);
+                
+                // Set selected recipes
+                Array.from(recipeSelect.options).forEach(option => {
+                    option.selected = meal.recipes.includes(parseInt(option.value));
+                });
+                
+                // Set selected regims
+                Array.from(regimSelect.options).forEach(option => {
+                    option.selected = meal.regims.includes(option.value);
+                });
+            }
+            
+            generateMealTables();
+        }
+        
+        function createNewDailyMenu() {
+            const date = document.getElementById("cza-date").value;
+            if (!date) {
+                alert("Selectați o dată!");
+                return;
+            }
+            
+            // Clear all selections
+            for (let i = 1; i <= 5; i++) {
+                const recipeSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .recipe-select`);
+                const regimSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .regim-select`);
+                
+                Array.from(recipeSelect.options).forEach(option => option.selected = false);
+                Array.from(regimSelect.options).forEach(option => option.selected = false);
+            }
+            
+            generateMealTables();
+        }
+        
+        function saveDailyMenu() {
+            const date = document.getElementById("cza-date").value;
+            if (!date) {
+                alert("Selectați o dată!");
+                return;
+            }
+            
+            const menu = {
+                date,
+                meals: {}
+            };
+            
+            for (let i = 1; i <= 5; i++) {
+                const mealKey = `M${i}`;
+                const recipeSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .recipe-select`);
+                const regimSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .regim-select`);
+                
+                const selectedRecipes = Array.from(recipeSelect.selectedOptions).map(opt => parseInt(opt.value));
+                const selectedRegims = Array.from(regimSelect.selectedOptions).map(opt => opt.value);
+                
+                menu.meals[mealKey] = {
+                    recipes: selectedRecipes,
+                    regims: selectedRegims
+                };
+            }
+            
+            dailyMenus[date] = menu;
+            alert("Meniu salvat pentru data " + date);
+        }
+        
+        function generateMealTables() {
+            for (let i = 1; i <= 5; i++) {
+                const mealKey = `M${i}`;
+                const tablesContainer = document.getElementById(`${mealKey.toLowerCase()}-tables`);
+                tablesContainer.innerHTML = "";
+                
+                const recipeSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .recipe-select`);
+                const regimSelect = document.querySelector(`#cza .meal-section:nth-child(${i}) .regim-select`);
+                
+                const selectedRecipes = Array.from(recipeSelect.selectedOptions).map(opt => parseInt(opt.value));
+                const selectedRegims = Array.from(regimSelect.selectedOptions).map(opt => opt.value);
+                
+                if (selectedRecipes.length === 0 || selectedRegims.length === 0) {
+                    tablesContainer.innerHTML = "<p>Nu există date de afișat. Selectați rețete și regimuri.</p>";
+                    continue;
+                }
+                
+                // For each recipe and regim combination, create a table
+                selectedRecipes.forEach(recipeId => {
+                    const recipe = recipes.find(r => r.id === recipeId);
+                    if (!recipe) return;
+                    
+                    selectedRegims.forEach(regim => {
+                        // Create table header
+                        const header = document.createElement("h5");
+                        header.textContent = `Masa ${i} - ${recipe.name} - Regim ${regim}`;
+                        tablesContainer.appendChild(header);
+                        
+                        // Create table
+                        const table = document.createElement("table");
+                        table.innerHTML = `
+                            <thead>
+                                <tr>
+                                    <th>Aliment</th>
+                                    <th>UM</th>
+                                    <th>Cantitate/porție</th>
+                                    <th>Număr persoane</th>
+                                    <th>Cantitate totală</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recipe.ingredients.map(ing => {
+                                    const food = foods.find(f => f.id === ing.foodId);
+                                    if (!food) return '';
+                                    
+                                    // Calculate total quantity (quantity per portion * number of people)
+                                    const people = peopleCounts[regim].C1 + peopleCounts[regim].C2 + peopleCounts[regim].C3;
+                                    const total = ing.quantity * people;
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${food.name}</td>
+                                            <td>${food.unit}</td>
+                                            <td>${ing.quantity}</td>
+                                            <td>${people}</td>
+                                            <td>${total.toFixed(2)}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        `;
+                        tablesContainer.appendChild(table);
+                    });
+                });
+            }
+        }
+        
+        // Listă alimente functions
+        function loadFoodList() {
+            const date = document.getElementById("food-list-date").value;
+            if (!date) {
+                alert("Selectați o dată!");
+                return;
+            }
+            
+            // In a real app, this would be calculated from the daily menu
+            const tbody = document.querySelector("#food-list-table tbody");
+            tbody.innerHTML = "";
+            
+            // Check if we have a menu for this date
+            const menu = dailyMenus[date];
+            if (!menu) {
+                tbody.innerHTML = "<tr><td colspan='6'>Nu există date pentru această dată</td></tr>";
+                return;
+            }
+            
+            // Aggregate all foods from all meals
+            const foodMap = new Map();
+            
+            for (let i = 1; i <= 5; i++) {
+                const meal = menu.meals[`M${i}`];
+                
+                meal.recipes.forEach(recipeId => {
+                    const recipe = recipes.find(r => r.id === recipeId);
+                    if (!recipe) return;
+                    
+                    meal.regims.forEach(regim => {
+                        const people = peopleCounts[regim].C1 + peopleCounts[regim].C2 + peopleCounts[regim].C3;
+                        
+                        recipe.ingredients.forEach(ing => {
+                            const food = foods.find(f => f.id === ing.foodId);
+                            if (!food) return;
+                            
+                            const total = ing.quantity * people;
+                            
+                            if (foodMap.has(food.id)) {
+                                const existing = foodMap.get(food.id);
+                                existing.total += total;
+                            } else {
+                                foodMap.set(food.id, {
+                                    food,
+                                    total
+                                });
+                            }
+                        });
+                    });
+                });
+            }
+            
+            // Add rows to table
+            foodMap.forEach((value, key) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${key}</td>
+                    <td>LA</td>
+                    <td>${value.food.name}</td>
+                    <td>${value.food.unit}</td>
+                    <td>${value.total.toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function exportFoodListToPDF() {
+            alert("Funcționalitatea de export PDF va fi implementată în versiunea finală.");
+            // In a real app, this would generate a PDF with the food list
+        }
+        
+        function exportDailyMenuToPDF() {
+            alert("Funcționalitatea de export meniu PDF va fi implementată în versiunea finală.");
+            // In a real app, this would generate a PDF with the daily menu
+        }
+        
+        // Initialize the app
+        document.addEventListener("DOMContentLoaded", function() {
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById("cza-date").value = today;
+            document.getElementById("food-list-date").value = today;
+            
+            // Populate recipe selects in CZA tab
+            const recipeSelects = document.querySelectorAll('.recipe-select');
+            recipeSelects.forEach(select => {
+                // Clear existing options except the first one
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                // Add recipe options
+                recipes.forEach(recipe => {
+                    const option = document.createElement("option");
+                    option.value = recipe.id;
+                    option.textContent = recipe.name;
+                    select.appendChild(option);
+                });
+            });
+            
+            // Add event listeners for CZA tab
+            const czaRecipeSelects = document.querySelectorAll('#cza .recipe-select');
+            const czaRegimSelects = document.querySelectorAll('#cza .regim-select');
+            
+            czaRecipeSelects.forEach(select => {
+                select.addEventListener('change', generateMealTables);
+            });
+            
+            czaRegimSelects.forEach(select => {
+                select.addEventListener('change', generateMealTables);
+            });
+            
+            // Add some sample data for demo
+            if (recipes.length === 0) {
+                recipes = [
+                    {
+                        id: 1,
+                        name: "Omletă",
+                        ingredients: [
+                            { foodId: 3, quantity: 2 }, // 2 ouă
+                            { foodId: 2, quantity: 0.1 } // 0.1l lapte
+                        ]
+                    },
+                    {
+                        id: 2,
+                        name: "Sandviș",
+                        ingredients: [
+                            { foodId: 1, quantity: 2 }, // 2 felii pâine
+                            { foodId: 5, quantity: 0.05 }, // 50g șuncă
+                            { foodId: 4, quantity: 0.03 } // 30g brânză
+                        ]
+                    }
+                ];
+                
+                updateRecipesTable();
+            }
+        });
+    </script>
+</body>
+</html>
