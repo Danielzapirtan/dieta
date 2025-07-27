@@ -1020,12 +1020,6 @@
             return;
         }
         
-        /*if (!window.jsPDF) {
-            alert('Biblioteca PDF nu este încărcată!');
-            return;
-        }*/
-        //import jsPDF from 'jspdf';
-        //const { jsPDF } = window.jsPDF;
         const doc = new jspdf.jsPDF();
         
         // Header
@@ -1076,8 +1070,7 @@
             return;
         }
         
-        const { jsPDF } = window.jsPDF;
-        const doc = new jsPDF();
+        const doc = new jspdf.jsPDF();
         
         // Header
         doc.setFontSize(20);
