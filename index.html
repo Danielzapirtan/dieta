@@ -1024,8 +1024,8 @@
             alert('Biblioteca PDF nu este încărcată!');
             return;
         }*/
-        
-        const { jsPDF } = window.jsPDF;
+        import jsPDF from 'jspdf';
+        //const { jsPDF } = window.jsPDF;
         const doc = new jsPDF();
         
         // Header
