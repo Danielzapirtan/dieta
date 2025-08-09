@@ -11,7 +11,7 @@ tabLabels = [
   "cza",
   "la"
 ];
-tabLabels.forEach((index, label) => {
+tabLabels.forEach((label, index) => {
   const tab = document.createElement("option");
   tab.classList.add("tab");
   tab.name = label;
