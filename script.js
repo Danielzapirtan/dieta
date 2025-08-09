@@ -24,7 +24,7 @@ tabLabels.forEach((label, index) => {
   tab.textContent = label;
   tabs.appendChild(tab);
 });
-tabs.selectedIndex = -1;
+tabs.selectedIndex = 0;
 app.appendChild(tabs);
 
 const retetar = document.createElement("div");
