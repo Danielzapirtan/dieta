@@ -47,17 +47,17 @@ retetar.appendChild(retetarMenu);
 
 const regimuri = document.createElement("div");
 regimuri.id = "regimuri";
-regimuri.innerHTML = `Placeholder for regimuri tab`;
+regimuri.innerHTML = `Placeholder pentru regimuri tab`;
 app.appendChild(regimuri);
 
 const cza = document.createElement("div");
 cza.id = "cza";
-cza.innerHTML = `Placeholder for cza tab`;
+cza.innerHTML = `Placeholder pentru cza tab`;
 app.appendChild(cza);
 
 const la = document.createElement("div");
 la.id = "la";
-la.innerHTML = `Placeholder for la tab`;
+la.innerHTML = `Placeholder pentru la tab`;
 app.appendChild(la);
 
 tabs.addEventListener('change', (event) => {
