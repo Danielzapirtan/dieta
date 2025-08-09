@@ -50,19 +50,19 @@ tabs.addEventListener('change', () => {
     case 0: {
       retetar.classList.remove('hidden');
       break;
-    }
+    };
     case 1: {
       regimuri.classList.remove('hidden');
       break;
-    }
+    };
     case 2: {
       cza.classList.remove('hidden');
       break;
-    }
+    };
     case 3: {
       la.classList.remove('hidden');
       break;
-    }
+    };
     default:;
   };
 });
