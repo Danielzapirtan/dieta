@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dieta - Gestiunea alimentației</title>
+    <!-- TODO Remove external libraries to optimize legal compliance -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
@@ -461,6 +462,7 @@
             </div>
         </div>
     </div>
+    <!-- TODO Remove external libraries to optimize legal compliance -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script>
         // Date globale pentru aplicație
@@ -1014,6 +1016,8 @@
 
     // === FUNCȚII EXPORT PDF ===
     function exportPDF() {
+        alert('Funcție dezactivată în versiunea curntă.");
+        return;
         const data = document.getElementById('data-lista').value;
         if (!data) {
             alert('Selectați o dată pentru export!');
@@ -1064,6 +1068,8 @@
     }
 
     function exportMeniuPDF() {
+        alert('Funcție dezactivată în versiunea curntă.");
+        return;
         const data = document.getElementById('data-lista').value;
         if (!data || !cza[data]) {
             alert('Nu există meniu pentru această dată!');
