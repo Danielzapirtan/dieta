@@ -29,22 +29,22 @@ app.appendChild(tabs);
 
 const retetar = document.createElement("div");
 retetar.id = "retetar";
-retetar.innerHTML = `Hello retetar`;
+retetar.innerHTML = `Placeholder for retetar tab`;
 app.appendChild(retetar);
 
 const regimuri = document.createElement("div");
 regimuri.id = "regimuri";
-regimuri.innerHTML = `Hello regimuri`;
+regimuri.innerHTML = `Placeholder for regimuri tab`;
 app.appendChild(regimuri);
 
 const cza = document.createElement("div");
 cza.id = "cza";
-cza.innerHTML = `Hello cza`;
+cza.innerHTML = `Placeholder for cza tab`;
 app.appendChild(cza);
 
 const la = document.createElement("div");
 la.id = "la";
-la.innerHTML = `Hello la`;
+la.innerHTML = `Placeholder for la tab`;
 app.appendChild(la);
 
 tabs.addEventListener('change', (event) => {
