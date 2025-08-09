@@ -15,7 +15,7 @@ tabLabels.forEach((index, label) => {
   const tab = document.createElement("option");
   tab.classList.add("tab");
   tab.name = label;
-  tab.value = label;
+  tab.textContent = label;
   tabs.appendChild(tab);
 });
 tabs.selectedIndex = 0;
@@ -41,12 +41,12 @@ la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
 
-tabs.addEventListener('click', function() {
+tabs.addEventListener('click', () => {
   tabs.forEach(tab => {
     tab.classList.add('hidden');
   });
 
-  switch (tabs.selectedIndex) {
+  switch (this.selectedIndex) {
     case 0: {
       retetar.classList.remove('hidden');
       break;
