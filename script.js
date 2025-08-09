@@ -1,3 +1,6 @@
 const app = document.getElementById("app");
-app.innerHTML = `Hello app`;
+
+const retetar = app.createElement("div");
+retetar.id = "retetar";
+retetar.innerHTML = `Hello retetar`;
 
