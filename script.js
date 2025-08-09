@@ -41,12 +41,12 @@ la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
 
-tabs.addEventListener('change', () => {
+tabs.addEventListener('change', (event) => {
   retetar.classList.add('hidden');
   regimuri.classList.add('hidden');
   cza.classList.add('hidden');
   la.classList.add('hidden');
-  switch (this.textContent) {
+  switch (event.target.textContent) {
     case "retetar":
       retetar.classList.remove('hidden');
       break;
