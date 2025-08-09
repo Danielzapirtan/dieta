@@ -46,14 +46,14 @@ tabs.addEventListener('change', () => {
   regimuri.classList.add('hidden');
   cza.classList.add('hidden');
   la.classList.add('hidden');
-  switch (this.selectedIndex) {
-    case 0:
+  switch (this.textContent) {
+    case "retetar":
       retetar.classList.remove('hidden');
       break;
-    case 1:
+    case "regimuri":
       regimuri.classList.remove('hidden');
       break;
-    case 2:
+    case "cza":
       cza.classList.remove('hidden');
       break;
     default:
