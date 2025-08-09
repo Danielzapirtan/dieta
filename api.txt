@@ -1,0 +1,8 @@
+dieta internal API
+
+class Aliment;
+class Mancare;
+class Regim;
+class CZA;
+class LA;
+
