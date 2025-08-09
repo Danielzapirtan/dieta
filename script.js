@@ -29,9 +29,20 @@ app.appendChild(tabs);
 
 const retetar = document.createElement("div");
 retetar.id = "retetar";
-retetar.innerHTML = `Placeholder for retetar tab`;
+//retetar.innerHTML = `Placeholder for retetar tab`;
 app.appendChild(retetar);
-
+const retetarMenu = document.createElement("select");
+const rmLabels = [
+  "operatii CRUD mancaruri",
+  "Selecteaza mancare",
+  "operatii CRUD alimente"
+];
+rmLabels.forEach(label => {
+  const rmItem = document.createElement("option");
+  rmItem.name = label;
+  rmItem.textContent = label;
+  retetar.appendChild(retetarMenu);
+});
 const regimuri = document.createElement("div");
 regimuri.id = "regimuri";
 regimuri.innerHTML = `Placeholder for regimuri tab`;
