@@ -22,5 +22,5 @@ la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
 
-regimuri.classList.add("hidden");
+regimuri.classList.add('hidden');
 
