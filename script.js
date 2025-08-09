@@ -1,3 +1,9 @@
+let mancaruriList = [];
+let reteteList = [];
+let regimuriList = [];
+let czaList = [];
+let laList = [];
+
 const app = document.createElement("div");
 app.id = "app";
 document.body.appendChild(app);
