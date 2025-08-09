@@ -56,10 +56,8 @@ tabs.addEventListener('change', () => {
     case 2:
       cza.classList.remove('hidden');
       break;
-    case 3:
+    default:
       la.classList.remove('hidden');
-      break;
-    default:;
   }
 });
 
