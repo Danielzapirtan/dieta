@@ -18,7 +18,7 @@ tabLabels.forEach((label, index) => {
   tab.textContent = label;
   tabs.appendChild(tab);
 });
-tabs.selectedIndex = -1;
+tabs.selectedIndex = 0;
 app.appendChild(tabs);
 
 const retetar = document.createElement("div");
@@ -47,22 +47,18 @@ tabs.addEventListener('change', () => {
   cza.classList.add('hidden');
   la.classList.add('hidden');
   switch (this.selectedIndex) {
-    case 0: {
+    case 0:
       retetar.classList.remove('hidden');
       break;
-    }
-    case 1: {
+    case 1:
       regimuri.classList.remove('hidden');
       break;
-    }
-    case 2: {
+    case 2:
       cza.classList.remove('hidden');
       break;
-    }
-    case 3: {
+    case 3:
       la.classList.remove('hidden');
       break;
-    }
     default:;
   }
 });
