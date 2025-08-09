@@ -15,7 +15,6 @@ tabLabels.forEach((index, label) => {
   const tab = document.createElement("option");
   tab.classList.add("tab");
   tab.name = label;
-  tab.value = index;
   tab.textContent = label;
   tabs.appendChild(tab);
 });
@@ -42,27 +41,29 @@ la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
 
-tabs.forEach(tab => {
-  tab.classList.add('hidden');
-});
+tabs.addEventListener('change' => {
+  tabs.forEach(tab => {
+    tab.classList.add('hidden');
+  });
 
-switch (tabs.selectedIndex) {
-  case 0: {
-    retetar.classList.remove('hidden');
-    break;
-  }
-  case 1: {
-    regimuri.classList.remove('hidden');
-    break;
-  }
-  case 2: {
-    cza.classList.remove('hidden');
-    break;
-  }
-  case 3: {
-    la.classList.remove('hidden');
-    break;
-  }
-  default:;
-};
+  switch (tabs.selectedIndex) {
+    case 0: {
+      retetar.classList.remove('hidden');
+      break;
+    }
+    case 1: {
+      regimuri.classList.remove('hidden');
+      break;
+    }
+    case 2: {
+      cza.classList.remove('hidden');
+      break;
+    }
+    case 3: {
+      la.classList.remove('hidden');
+      break;
+    }
+    default:;
+  };
+});
 
