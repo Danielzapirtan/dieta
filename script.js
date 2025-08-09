@@ -1,2 +1,3 @@
-const retetar = document.getElementById("app");
-retetar.innerHTML = `Hello app`;
+const app = document.getElementById("app");
+app.innerHTML = `Hello app`;
+
