@@ -39,4 +39,3 @@ const la = document.createElement("div");
 la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
-
