@@ -42,10 +42,10 @@ la.innerHTML = `Hello la`;
 app.appendChild(la);
 
 tabs.addEventListener('click', () => {
-  tabs.forEach(tab => {
-    tab.classList.add('hidden');
-  });
-
+  retetar.classList.add('hidden');
+  regimuri.classList.add('hidden');
+  cza.classList.add('hidden');
+  la.classList.add('hidden');
   switch (this.selectedIndex) {
     case 0: {
       retetar.classList.remove('hidden');
