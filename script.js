@@ -15,7 +15,7 @@ tabLabels.forEach((index, label) => {
   const tab = document.createElement("option");
   tab.classList.add("tab");
   tab.name = label;
-  tab.textContent = label;
+  tab.value = label;
   tabs.appendChild(tab);
 });
 tabs.selectedIndex = 0;
