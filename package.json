@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "eslint": "^9.33.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   }
-}
-"scripts": {
-  "lint": "eslint .",
-  "lint:fix": "eslint . --fix"
 }
