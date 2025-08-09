@@ -41,7 +41,7 @@ la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
 
-tabs.addEventListener('change' => {
+tabs.addEventListener('click', function() {
   tabs.forEach(tab => {
     tab.classList.add('hidden');
   });
