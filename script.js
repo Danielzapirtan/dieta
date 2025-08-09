@@ -11,3 +11,13 @@ const regimuri = document.createElement("div");
 regimuri.id = "regimuri";
 regimuri.innerHTML = `Hello regimuri`;
 app.appendChild(regimuri);
+
+const cza = document.createElement("div");
+cza.id = "cza";
+cza.innerHTML = `Hello cza`;
+app.appendChild(cza);
+
+const la = document.createElement("div");
+la.id = "la";
+la.innerHTML = `Hello la`;
+app.appendChild(la);
