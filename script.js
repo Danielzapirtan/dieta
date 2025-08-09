@@ -41,7 +41,7 @@ la.id = "la";
 la.innerHTML = `Hello la`;
 app.appendChild(la);
 
-tabs.addEventListener('click', () => {
+tabs.addEventListener('change', () => {
   retetar.classList.add('hidden');
   regimuri.classList.add('hidden');
   cza.classList.add('hidden');
