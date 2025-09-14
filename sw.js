@@ -1,9 +1,9 @@
 const CACHE_NAME = 'dieta-app-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
