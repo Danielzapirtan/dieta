@@ -2,7 +2,7 @@
   "name": "Dieta App",
   "short_name": "Dieta",
   "description": "Sistem de gestiune alimentară",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
