@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Sistem de gestiune alimentară - aplicație pentru gestionarea dietei și a listelor de alimente">
     <title>Dieta - Gestiunea alimentației</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS Safari PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Dieta App">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="icons/icon-48x48.png">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
@@ -303,9 +318,55 @@
             font-size: 0.9em;
             margin-top: 5px;
         }
+        
+        /* PWA Installation Prompt */
+        #installPrompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        #installPrompt button {
+            background: #27ae60;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #installPrompt button#dismissPrompt {
+            background: #e74c3c;
+        }
+        
+        /* Offline Indicator */
+        #offlineIndicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #e74c3c;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            z-index: 1001;
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <div id="offlineIndicator">⚠️ Ești offline. Unele funcții pot fi limitate.</div>
+    
     <div class="container">
         <div class="header">
             <h1>🍽️ DIETA</h1>
@@ -461,13 +522,22 @@
             </div>
         </div>
     </div>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    
+    <!-- PWA Installation Prompt -->
+    <div id="installPrompt">
+        <span>Instalează aplicația Dieta pentru o experiență îmbunătățită!</span>
+        <button id="installAppBtn">Instalează</button>
+        <button id="dismissPrompt">Mai târziu</button>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script>
         // Date globale pentru aplicație
         let retetar = JSON.parse(localStorage.getItem('retetar') || '{}');
         let persoane = JSON.parse(localStorage.getItem('persoane') || '{}');
         let cza = JSON.parse(localStorage.getItem('cza') || '{}');
         let mancareSelectata = '';
+        let deferredPrompt;
 
         // Inițializare aplicație
         document.addEventListener('DOMContentLoaded', function() {
@@ -483,7 +553,73 @@
             
             incarcaCZA();
             genereazaListaAlimente();
+            
+            // PWA initialization
+            initPWA();
         });
+
+        // === PWA FUNCTIONS ===
+        function initPWA() {
+            // Register service worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registered with scope: ', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+                });
+            }
+            
+            // Listen for beforeinstallprompt event
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent the mini-infobar from appearing on mobile
+                e.preventDefault();
+                // Stash the event so it can be triggered later
+                deferredPrompt = e;
+                // Show the install prompt
+                const installPrompt = document.getElementById('installPrompt');
+                installPrompt.style.display = 'flex';
+                
+                // Add event listener to install button
+                document.getElementById('installAppBtn').addEventListener('click', () => {
+                    // Hide the install prompt
+                    installPrompt.style.display = 'none';
+                    // Show the install prompt
+                    deferredPrompt.prompt();
+                    // Wait for the user to respond to the prompt
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        } else {
+                            console.log('User dismissed the install prompt');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+                
+                // Add event listener to dismiss button
+                document.getElementById('dismissPrompt').addEventListener('click', () => {
+                    installPrompt.style.display = 'none';
+                });
+            });
+            
+            // Track online/offline status
+            window.addEventListener('online', function() {
+                document.getElementById('offlineIndicator').style.display = 'none';
+            });
+            
+            window.addEventListener('offline', function() {
+                document.getElementById('offlineIndicator').style.display = 'block';
+            });
+            
+            // Check initial online status
+            if (!navigator.onLine) {
+                document.getElementById('offlineIndicator').style.display = 'block';
+            }
+        }
 
         // === FUNCȚII GENERALE ===
         function initializareTaburi() {
